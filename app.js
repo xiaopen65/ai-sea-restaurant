@@ -147,6 +147,7 @@
     document.documentElement.classList.toggle("is-flip", on);
     syncUnits(on);
     scaleStage();
+    refitAll();
     var hint = $("rotateHint");
     if (!hint) { return; }
     if (on && !rotHinted) {
@@ -170,6 +171,50 @@
   }
   document.addEventListener("focusin", syncTyping);
   document.addEventListener("focusout", function () { setTimeout(syncTyping, 40); });
+
+  /* ---------------- 文字格宽度：用 px 写死 ----------------
+     有些手机浏览器（荣耀/华为那类内核）会把弹性子项的宽度按「文字固有宽度」缓存住。
+     字体换好、文字变长之后它不重算，旁白就会在弹窗中间折行、右边空一大块。
+     这里每次换行都量一遍盒子，把文字格宽度用 px 写死（width + min-width + flex-basis 三重），
+     绕开内核那套固有宽度计算。 */
+  function fitTextCol(box, col, face) {
+    if (!box || !col || !box.offsetWidth) { return; }
+    var cs = getComputedStyle(box);
+    var avail = box.clientWidth -
+      (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+    if (face && !face.hidden && face.offsetWidth) {
+      avail -= face.offsetWidth + (parseFloat(cs.columnGap || cs.gap) || 0);
+    }
+    if (!(avail > 80)) { avail = 80; }
+    var w = Math.floor(avail) + "px";
+    col.style.flex = "0 1 " + w;
+    col.style.width = w;
+    col.style.minWidth = w;
+  }
+
+  function fitDlg() {
+    fitTextCol($("dlgBox"), $("dlgMain"), $("dlgFace"));
+  }
+
+  function fitStory() {
+    var body = $("storyBody");
+    if (!body) { return; }
+    Array.prototype.forEach.call(body.querySelectorAll(".sline"), function (ln) {
+      fitTextCol(ln, ln.querySelector(".sline__box"), ln.querySelector(".sline__face"));
+    });
+  }
+
+  function fitBag() {
+    var d = $("bagDetail");
+    if (!d) { return; }
+    fitTextCol(d, d.querySelector(".bag__dmain"), d.querySelector(".bag__dico"));
+  }
+
+  function refitAll() {
+    if ($("dlg") && !$("dlg").hidden) { fitDlg(); }
+    if ($("story") && !$("story").hidden) { fitStory(); }
+    if ($("bag") && !$("bag").hidden) { fitBag(); }
+  }
 
   function unlocked(act) {
     if (state.free) { return true; }
@@ -292,6 +337,7 @@
     $("dlgWho").hidden = isNarr;
     $("dlgFace").hidden = isNarr || !sp.img;
     if (!isNarr && sp.img) { $("dlgFaceImg").src = sp.img; }
+    fitDlg();
     typeText(l[1]);
   }
 
@@ -450,6 +496,7 @@
     if (!act || !act.story || !act.story.length) { return; }
     renderStory(act);
     $("story").hidden = false;
+    fitStory();
   }
   function closeStory() { $("story").hidden = true; }
 
@@ -530,7 +577,7 @@
     var act = actById(bagPick) || {};
     box.innerHTML =
       '<span class="bag__dico">' + iconSVG(it.icon) + "</span>" +
-      '<div><b class="bag__dname">' + it.name + "</b>" +
+      '<div class="bag__dmain"><b class="bag__dname">' + it.name + "</b>" +
       '<p class="bag__dtext">' + (act.reward || "") + "</p>" +
       '<span class="bag__dfrom">第 ' + bagPick + " 幕 · " + (act.name || "") + "</span></div>";
   }
@@ -574,7 +621,7 @@
     renderBagDetail();
   }
 
-  function openBag() { renderBag(); $("bag").hidden = false; }
+  function openBag() { renderBag(); $("bag").hidden = false; fitBag(); }
   function closeBag() { $("bag").hidden = true; }
 
   /* ---------------- 改名字（点左上角的玩家卡片） ---------------- */
