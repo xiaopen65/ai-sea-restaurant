@@ -554,7 +554,6 @@ html.is-short .task__foot { margin: 0 -18px -16px; padding: 10px 18px 12px; }
   -webkit-user-select: text; user-select: text;
 }
 .task__ta:focus { border-color: #8a6a3a; background: #fff; }
-.task__sent { margin-bottom: 18px; }
 
 /* 交上去的汇报：任务卡里（纸底）和背包里（深底）各一套配色 */
 .rep { border: 2px dashed #b39b6f; background: #fffaf0; padding: 10px 12px; }
