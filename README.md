@@ -44,6 +44,20 @@
 
 方式二：直接双击 index.html（能用，但像素字体在 file:// 下会被浏览器拦掉，会退成系统字体）
 
+## 手机上怎么显示
+横屏手机（屏幕净高只剩 330~480px）：走 `html.is-short` / `html.is-tiny` 两档自动收紧，
+弹窗一律 `max-height` + 内部滚动，底部那颗按钮 sticky 贴在弹窗底边，不会再把"开始航行 / 收起来"顶出屏幕。
+
+竖屏手机：整个画面顺时针转 90°（`html.is-flip`），屏幕上飘一句"把手机往左转一下"，5 秒后自己淡掉，
+不挡点击。用户真把手机转过去之后浏览器会报横屏，`is-flip` 自动摘掉，就是正常的横屏画面。
+
+⚠️ 两个坑，以后改样式别踩：
+1. 竖屏翻转时，物理的 `vw / vh` 跟画面实际宽高是**对调**的。样式里不要直接用 `vw / vh`，
+   要用 `--pw` / `--ph`（app.js 每次 resize 都会把精确 px 写进这两个变量）：
+       width: min(620px, calc(var(--pw) * .92));
+       max-height: calc(var(--ph) * .86);
+2. 同理 `@media (max-height: ...)` 在竖屏翻转时量不到真正的画面高度，矮屏请用 `html.is-short` / `html.is-tiny`。
+
 ## 预览钩子（做图、验收用）
     index.html?stage=dialog&act=7&line=8   直接看第7幕第 8 行
     index.html?stage=full&act=13           打开"看完整剧情"
