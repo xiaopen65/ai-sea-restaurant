@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>漂流的海上餐厅 · AI 航海研习社</title>
+<link rel="stylesheet" href="styles.css?v=14">
+</head>
+<body>
+
+<!-- ============ 1. 出海前：起名字、选头像 ============ -->
+<div class="setup" id="setup" hidden>
+  <div class="setup__box">
+    <p class="setup__kicker">出海之前</p>
+    <h1 class="setup__title">先给自己起个名字</h1>
+    <p class="setup__hint">这个名字会挂在你船头，也会出现在每一幕里。</p>
+
+    <div class="setup__row">
+      <span class="setup__label">性别</span>
+      <div class="seg" id="genderSeg">
+        <button type="button" class="seg__btn is-on" data-gender="男">男</button>
+        <button type="button" class="seg__btn" data-gender="女">女</button>
+      </div>
+    </div>
+
+    <div class="setup__row">
+      <span class="setup__label">名字</span>
+      <input class="setup__input" id="nameInput" maxlength="8" placeholder="最多 8 个字" autocomplete="off">
+    </div>
+
+    <div class="setup__row setup__row--faces">
+      <span class="setup__label">头像</span>
+      <div class="faces" id="faces"></div>
+    </div>
+
+    <button type="button" class="gbtn gbtn--main" id="startBtn" disabled>开始航行</button>
+    <p class="setup__tip" id="setupTip"></p>
+  </div>
+</div>
+
+<!-- ============ 2. 地图 ============ -->
+<div class="game" id="game" hidden>
+  <div class="viewport" id="viewport">
+    <div class="stage" id="stage">
+      <img class="stage__map" id="stageMap" alt="" draggable="false">
+      <div class="stage__tint"></div>
+
+      <svg class="trail" id="trail" viewBox="0 0 1200 800" preserveAspectRatio="none"></svg>
+      <div class="nodes" id="nodes"></div>
+
+      <div class="fog" id="fog" hidden>
+        <p class="fog__text">前面雾还很重<br><span>把内海的事办完，海图才会往后展开</span></p>
+      </div>
+    </div>
+
+    <header class="hud">
+      <div class="hud__right">
+        <div class="progress">
+          <span class="progress__text">已通关 <b id="progressNum">0</b> / <span id="progressTotal">15</span></span>
+          <span class="progress__bar"><i id="progressFill"></i></span>
+        </div>
+        <button type="button" class="gbtn gbtn--ghost bagbtn" id="btnBag" title="背包" aria-label="背包"><i class="bagdot" id="bagDot" hidden>0</i></button>
+        <button type="button" class="gbtn gbtn--ghost" id="btnSet"><svg class="ico" viewBox="0 0 9 9" width="13" height="13" aria-hidden="true" shape-rendering="crispEdges"><rect x="0" y="1" width="9" height="1"/><rect x="1" y="0" width="3" height="3"/><rect x="0" y="4" width="9" height="1"/><rect x="5" y="3" width="3" height="3"/><rect x="0" y="7" width="9" height="1"/><rect x="2" y="6" width="3" height="3"/></svg> 设置</button>
+      </div>
+    </header>
+
+    <div class="brand" id="brand">
+      <h1>漂流的海上餐厅</h1>
+      <p>AI 航海研习社</p>
+    </div>
+
+    <button type="button" class="me" id="me" title="点一下，改名字">
+      <img class="me__face" id="meFace" alt="">
+      <span class="me__info">
+        <b class="me__name" id="meName">无名</b>
+      </span>
+    </button>
+
+    <footer class="dock">
+      <p class="dock__hint" id="hint"></p>
+      <ul class="legend">
+        <li><i class="dot dot--done"></i>已完成</li>
+        <li><i class="dot dot--now"></i>可以进行</li>
+        <li><i class="dot dot--lock"></i>未解锁</li>
+      </ul>
+    </footer>
+  </div>
+</div>
+
+<!-- ============ 3. 对话层 ============ -->
+<div class="dlg" id="dlg" hidden>
+  <div class="dlg__veil" id="dlgVeil"></div>
+  <div class="dlg__bar">
+    <button type="button" class="tbtn" id="btnFull">看完整剧情</button>
+    <button type="button" class="tbtn" id="btnSkip">跳过</button>
+  </div>
+  <div class="dlg__full" id="dlgFull" hidden></div>
+  <div class="dlg__box" id="dlgBox">
+    <div class="dlg__face" id="dlgFace" hidden><img id="dlgFaceImg" alt=""></div>
+    <div class="dlg__main">
+      <span class="dlg__who" id="dlgWho"></span>
+      <p class="dlg__text" id="dlgText"></p>
+    </div>
+    <span class="dlg__next" id="dlgNext">▼</span>
+  </div>
+</div>
+
+<!-- ============ 4. 任务卡 ============ -->
+<div class="task" id="task" hidden>
+  <div class="task__panel">
+    <button type="button" class="task__close" id="taskClose" title="先关掉，回头再做" aria-label="关闭">×</button>
+    <div class="task__box">
+    <div class="task__head">
+      <h2 class="task__title">这一关，你要做的</h2>
+    </div>
+
+    <p class="task__goal" id="taskGoal"></p>
+
+    <details class="task__steps" id="taskStepsBox">
+      <summary>行动步骤（卡住再看）</summary>
+      <ol id="taskSteps"></ol>
+    </details>
+
+    <div class="task__up" id="taskUp" hidden>
+      <p class="task__upstate" id="taskUpState"></p>
+      <div class="task__uprow">
+        <button type="button" class="gbtn gbtn--ghost" id="taskUpBtn">选择海报文件</button>
+        <img class="task__upimg" id="taskUpImg" alt="" hidden>
+      </div>
+      <input type="file" id="taskUpFile" accept="image/*" hidden>
+    </div>
+
+    <div class="task__tips" id="taskTips" hidden></div>
+
+    <div class="task__foot">
+      <button type="button" class="gbtn gbtn--ghost" id="taskStory">查看剧情</button>
+      <button type="button" class="gbtn gbtn--main" id="taskDone">我做完了</button>
+      <button type="button" class="gbtn gbtn--ghost" id="taskBag">查看背包</button>
+    </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============ 剧情回顾 ============ -->
+<div class="story" id="story" hidden>
+  <div class="story__veil" id="storyVeil"></div>
+  <div class="story__panel">
+    <button type="button" class="story__close" id="storyClose" title="收起来" aria-label="关闭">×</button>
+    <div class="story__box" id="storyBox">
+      <p class="story__kicker">这一幕，当时是这么走的</p>
+      <h2 class="story__title" id="storyTitle"></h2>
+      <div class="story__body" id="storyBody"></div>
+      <div class="story__foot">
+        <button type="button" class="gbtn gbtn--main" id="storyDone">收起来</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============ 改名字 ============ -->
+<div class="modal" id="profile" hidden>
+  <div class="modal__veil" id="profileVeil"></div>
+  <div class="modal__box modal__box--sm">
+    <p class="modal__kicker">船上挂的名牌</p>
+    <h2 class="modal__title">改个名字</h2>
+    <input class="setup__input" id="meInput" maxlength="8" placeholder="最多 8 个字" autocomplete="off">
+    <div class="modal__foot">
+      <button type="button" class="gbtn gbtn--ghost" id="meCancel">先不改</button>
+      <button type="button" class="gbtn gbtn--main" id="meSave">就这个</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============ 设置 ============ -->
+<div class="modal" id="settings" hidden>
+  <div class="modal__veil" id="settingsVeil"></div>
+  <div class="modal__box">
+    <p class="modal__kicker">路上用得着</p>
+    <h2 class="modal__title">设置</h2>
+
+    <div class="setrow">
+      <div class="setrow__text">
+        <b>背景音乐</b>
+      </div>
+      <div class="setrow__ctrl">
+        <input type="range" class="vol" id="bgmVol" min="0" max="100" step="5" aria-label="背景音乐音量">
+        <button type="button" class="gbtn gbtn--ghost" id="setBgm">开</button>
+      </div>
+    </div>
+
+    <div class="setrow">
+      <div class="setrow__text">
+        <b>音效</b>
+      </div>
+      <div class="setrow__ctrl">
+        <input type="range" class="vol" id="sfxVol" min="0" max="100" step="5" aria-label="音效音量">
+        <button type="button" class="gbtn gbtn--ghost" id="setSfx">开</button>
+      </div>
+    </div>
+
+    <div class="setrow">
+      <div class="setrow__text">
+        <b>自由探索</b>
+      </div>
+      <button type="button" class="gbtn gbtn--ghost" id="setFree">关</button>
+    </div>
+
+    <div class="setrow">
+      <div class="setrow__text">
+        <b>重新开始</b>
+      </div>
+      <button type="button" class="gbtn gbtn--danger" id="setReset">重来</button>
+    </div>
+
+    <div class="modal__foot">
+      <button type="button" class="gbtn gbtn--main" id="setClose">接着走</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============ 背包 ============ -->
+<div class="modal" id="bag" hidden>
+  <div class="modal__veil" id="bagVeil"></div>
+  <div class="modal__box modal__box--bag">
+    <p class="modal__kicker">走过一关，船上就多一样东西</p>
+    <h2 class="modal__title">背包<span class="bag__count" id="bagCount">0 / 15</span></h2>
+    <div class="bag__grid" id="bagGrid"></div>
+    <div class="bag__detail" id="bagDetail"></div>
+    <div class="modal__foot">
+      <button type="button" class="gbtn gbtn--main" id="bagClose">收起来</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 重来确认 ============ -->
+<div class="modal" id="confirm" hidden>
+  <div class="modal__veil" id="confirmVeil"></div>
+  <div class="modal__box modal__box--sm">
+    <h2 class="modal__title">真的要从头再来？</h2>
+    <p class="modal__text">现在的进度、名字、上传过的海报都会被清掉，直接退回第一幕。这一步没法撤回。</p>
+    <div class="modal__foot">
+      <button type="button" class="gbtn gbtn--ghost" id="cfCancel">先不要</button>
+      <button type="button" class="gbtn gbtn--danger" id="cfOk">确定重来</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 5. 结算 ============ -->
+<div class="banner" id="banner" hidden>
+  <div class="banner__inner">
+    <span class="banner__flag">⚑</span>
+    <div class="banner__text">
+      <b id="bannerTitle"></b>
+      <span id="bannerSub"></span>
+      <span class="banner__item" id="bannerItem" hidden></span>
+    </div>
+  </div>
+</div>
+
+<div class="rotate">
+  <p>把手机横过来<br><span>地图是横版的，转一下就能看全</span></p>
+</div>
+
+<script src="data/acts.js?v=14"></script>
+<script src="data/items.js?v=14"></script>
+<script src="audio.js?v=14"></script>
+<script src="app.js?v=14"></script>
+</body>
+</html>
