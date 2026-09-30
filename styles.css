@@ -16,7 +16,12 @@
   --line: rgba(242, 201, 107, 0.35);
   --ok: #6fd08c;
   --lock: #6b7a8c;
+  /* 逻辑视口：竖屏把画面转 90° 时，宽高是对调的。JS 启动会覆盖成精确 px */
+  --pw: 100vw;
+  --ph: 100vh;
 }
+
+html.is-flip { --pw: 100vh; --ph: 100vw; }
 
 * { box-sizing: border-box; }
 
@@ -77,11 +82,31 @@ svg.px { display: block; width: 18px; height: 18px; fill: none; }
 }
 .setup__box {
   width: min(560px, 100%);
+  max-height: calc(var(--ph) - 40px);   /* 横屏手机矮，宁可内部滚动，也不能把「开始航行」顶出屏幕 */
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
   background: linear-gradient(#0f2b45, #0a1e31);
   border: 3px solid var(--wood-dk);
   box-shadow: 0 0 0 3px #2a4a68, 0 18px 50px rgba(0, 0, 0, .6);
   padding: 26px 26px 22px;
 }
+/* 逻辑高度不够（手机横屏 / 竖屏转 90° 之后）：把「出海前」压进一屏
+   用 is-short 而不是 @media —— 竖屏翻转时物理高度是竖的，媒体查询量不到真正的画面高度 */
+html.is-short .setup { padding: 10px; }
+html.is-short .setup__box { padding: 14px 18px 12px; max-height: calc(var(--ph) - 20px); }
+html.is-short .setup__kicker { font-size: 11px; }
+html.is-short .setup__title { font-size: 18px; margin: 2px 0 2px; }
+html.is-short .setup__hint { font-size: 11px; margin-bottom: 8px; }
+html.is-short .setup__row { margin-bottom: 8px; }
+html.is-short .setup__row--faces { align-items: center; }
+html.is-short .setup__label { padding-top: 0; }
+html.is-short .seg__btn { padding: 6px 20px; font-size: 13px; }
+html.is-short .setup__input { padding: 6px 10px; font-size: 14px; }
+html.is-short .faces { grid-template-columns: repeat(4, 64px); justify-content: start; gap: 8px; }
+html.is-short .face__tag { display: none; }
+html.is-short #startBtn { padding: 8px 20px; font-size: 14px; }
+html.is-short .setup__tip { display: none; }
+
 .setup__kicker { margin: 0; color: var(--gold); font-size: 12px; letter-spacing: 2px; }
 .setup__title { margin: 6px 0 6px; font-size: 24px; color: #fff4dc; }
 .setup__hint { margin: 0 0 20px; color: #9db6cc; font-size: 12px; }
@@ -272,8 +297,8 @@ svg.px { display: block; width: 18px; height: 18px; fill: none; }
 .dlg__full {
   position: absolute; left: 50%; top: 54px;
   transform: translateX(-50%);
-  width: min(760px, 92vw);
-  max-height: 58vh; overflow: auto;
+  width: min(760px, calc(var(--pw) * .92));
+  max-height: calc(var(--ph) * .58); overflow: auto;
   padding: 16px 20px;
   background: rgba(6, 20, 34, .97);
   border: 2px solid var(--wood-dk);
@@ -290,7 +315,7 @@ svg.px { display: block; width: 18px; height: 18px; fill: none; }
 .dlg__box {
   position: absolute; left: 50%; bottom: 26px;
   transform: translateX(-50%);
-  width: min(880px, 94vw);
+  width: min(880px, calc(var(--pw) * .94));
   min-height: 168px;
   display: flex; gap: 14px; align-items: center;
   padding: 16px 18px;
@@ -320,13 +345,14 @@ svg.px { display: block; width: 18px; height: 18px; fill: none; }
 .modal__veil { position: absolute; inset: 0; }
 .modal__box {
   position: relative;
-  width: min(460px, 94vw);
+  width: min(460px, calc(var(--pw) * .94));
+  max-height: calc(var(--ph) - 44px); overflow: auto;
   padding: 20px 22px 18px;
   background: linear-gradient(#123152, #0a1e31);
   border: 3px solid var(--wood-dk);
   box-shadow: 0 0 0 3px #24455f, 0 18px 46px rgba(0, 0, 0, .6);
 }
-.modal__box--sm { width: min(410px, 94vw); }
+.modal__box--sm { width: min(410px, calc(var(--pw) * .94)); }
 .modal__kicker { margin: 0; font-size: 11px; color: #7e99b3; letter-spacing: 1px; }
 .modal__title { margin: 4px 0 12px; font-size: 18px; color: var(--gold); }
 .modal__text { margin: 0; font-size: 13px; line-height: 1.9; color: #cfe3f5; }
@@ -366,10 +392,8 @@ svg.px { display: block; width: 18px; height: 18px; fill: none; }
 .vol::-moz-range-track { height: 8px; background: transparent; }
 .vol:disabled { opacity: .3; cursor: not-allowed; }
 .vol:disabled::-webkit-slider-thumb { cursor: not-allowed; }
-@media (max-width: 560px) {
-  .setrow { flex-wrap: wrap; }
-  .setrow__ctrl { margin-left: auto; }
-}
+html.is-narrow .setrow { flex-wrap: wrap; }
+html.is-narrow .setrow__ctrl { margin-left: auto; }
 .modal__foot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
 .gbtn--danger {
   background: linear-gradient(#c2604d, #94392a);
@@ -392,7 +416,7 @@ svg.px { display: block; width: 18px; height: 18px; fill: none; }
   animation: pulse 1.8s ease-in-out infinite;
 }
 @keyframes pulse { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
-.modal__box--bag { width: min(520px, 95vw); }
+.modal__box--bag { width: min(520px, calc(var(--pw) * .95)); }
 .bag__count { margin-left: 8px; font-size: 12px; color: #9db6cc; }
 .bag__grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 9px; margin-top: 12px; }
 .bag__slot {
@@ -434,8 +458,8 @@ svg.px { display: block; width: 18px; height: 18px; fill: none; }
 .task { position: fixed; inset: 0; display: grid; place-items: center; z-index: 32; background: rgba(3, 10, 18, .72); }
 .task__panel {
   position: relative;
-  width: min(620px, 92vw);
-  max-height: 86vh;
+  width: min(620px, calc(var(--pw) * .92));
+  max-height: calc(var(--ph) * .86);
 }
 .task__close {
   position: absolute; z-index: 2; top: 12px; right: 12px;
@@ -452,7 +476,7 @@ svg.px { display: block; width: 18px; height: 18px; fill: none; }
 .task__close:active { transform: translateY(2px); box-shadow: none; }
 .task__box {
   width: 100%;
-  max-height: 86vh; overflow: auto;
+  max-height: calc(var(--ph) * .86); overflow: auto;
   padding: 22px 24px;
   background: linear-gradient(#f6e7c8, #e6d3aa);
   border: 3px solid var(--wood-dk);
@@ -523,9 +547,9 @@ html.is-flip { overflow: hidden; }
 html.is-flip body { overflow: hidden; }
 html.is-flip .rot {
   position: fixed; top: 0; left: 0;
-  width: 100vh; height: 100vw;
+  width: var(--pw); height: var(--ph);
   transform-origin: 0 0;
-  transform: translateX(100vw) rotate(90deg);
+  transform: translateX(var(--ph)) rotate(90deg);
 }
 
 /* 对话进行时：把地图上的 HUD 藏起来，只留对话 */
@@ -543,7 +567,7 @@ body.is-dialog .brand { opacity: 0; pointer-events: none; }
   background: rgba(3, 10, 18, .78);
 }
 .story__veil { position: absolute; inset: 0; }
-.story__panel { position: relative; width: min(620px, 94vw); max-height: 86vh; }
+.story__panel { position: relative; width: min(620px, calc(var(--pw) * .94)); max-height: calc(var(--ph) * .86); }
 .story__close {
   position: absolute; z-index: 2; top: 12px; right: 12px;
   width: 34px; height: 34px; padding: 0;
@@ -557,7 +581,7 @@ body.is-dialog .brand { opacity: 0; pointer-events: none; }
 .story__close:hover { background: #f6e7c8; color: #8a4a1a; }
 .story__close:active { transform: translateY(2px); box-shadow: none; }
 .story__box {
-  width: 100%; max-height: 86vh; overflow: auto;
+  width: 100%; max-height: calc(var(--ph) * .86); overflow: auto;
   padding: 22px 24px;
   background: linear-gradient(#f6e7c8, #e6d3aa);
   border: 3px solid var(--wood-dk);
@@ -575,3 +599,48 @@ body.is-dialog .brand { opacity: 0; pointer-events: none; }
 .sline__who { display: block; font-size: 12px; color: #8a6a3a; margin-bottom: 3px; }
 .sline__box p { margin: 0; font-size: 14px; line-height: 1.85; }
 .story__foot { display: flex; justify-content: flex-end; margin-top: 20px; }
+
+/* ================= 矮屏（横屏手机 / 竖屏转 90° 之后）通用收紧 ================= */
+html.is-short .modal { padding: 10px; }
+html.is-short .modal__box { padding: 14px 16px 12px; max-height: calc(var(--ph) - 24px); }
+html.is-short .modal__kicker { font-size: 10px; }
+html.is-short .modal__title { font-size: 16px; margin: 2px 0 8px; }
+html.is-short .modal__text { font-size: 12px; line-height: 1.8; }
+html.is-short .setrow { padding: 7px 0; }
+html.is-short .setrow__text b { font-size: 13px; }
+html.is-short .modal__foot { margin-top: 6px; }
+
+/* 背包：矮屏改 8 列，两行装得下 15 件 */
+html.is-short .modal__box--bag { width: min(660px, calc(var(--pw) * .95)); }
+html.is-short .bag__grid { grid-template-columns: repeat(8, 1fr); gap: 6px; margin-top: 6px; }
+html.is-short .bag__detail { min-height: 32px; margin-top: 6px; padding: 4px 10px; gap: 10px; }
+html.is-short .bag__dico { width: 32px; height: 32px; }
+html.is-short .bag__dname { font-size: 13px; }
+html.is-short .bag__dtext { font-size: 11px; margin: 2px 0 2px; line-height: 1.6; }
+
+/* 任务卡 / 剧情回顾 */
+html.is-short .task__box { padding: 16px 18px; }
+html.is-short .task__title { font-size: 17px; margin: 2px 0 10px; }
+html.is-short .task__goal { font-size: 14px; line-height: 1.8; margin-bottom: 10px; }
+html.is-short .task__steps ol { font-size: 12px; line-height: 1.8; }
+html.is-short .task__upimg { max-height: 88px; max-width: 68px; }
+html.is-short .task__foot { gap: 8px; }
+html.is-short .task__foot .gbtn { padding: 8px 12px; font-size: 12px; }
+html.is-short .task__close,
+html.is-short .story__close { top: 8px; right: 8px; width: 30px; height: 30px; font-size: 15px; }
+html.is-short .story__box { padding: 16px 18px; }
+html.is-short .story__title { font-size: 17px; margin: 2px 0 10px; }
+html.is-short .snarr,
+html.is-short .sline__box p { font-size: 13px; line-height: 1.8; }
+html.is-short .sline__face { width: 36px; height: 36px; }
+
+/* 对话条：矮屏收一点，别把画面顶满 */
+html.is-short .dlg__box { min-height: 132px; bottom: 14px; padding: 12px 14px; gap: 12px; }
+html.is-short .dlg__face { width: 96px; height: 96px; }
+html.is-short .dlg__text { font-size: 14px; line-height: 1.75; }
+html.is-short .dlg__full { top: 46px; max-height: calc(var(--ph) * .72); }
+
+/* 结算横幅 */
+html.is-short .banner__inner { padding: 14px 22px; }
+html.is-short .banner__flag { font-size: 20px; }
+html.is-short .banner__text b { font-size: 15px; }

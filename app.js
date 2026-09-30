@@ -125,10 +125,25 @@
     $("stage").style.transform = "translate(-50%, -50%) scale(" + s + ")";
   }
 
+  /* 把「逻辑视口」写进 --pw / --ph：竖屏转 90° 之后，宽高是对调的
+     顺便给 html 挂上 is-short / is-narrow，CSS 里就不用再写媒体查询
+     （竖屏时物理高度是竖的，max-height 媒体查询根本量不到真正的画面高度） */
+  function syncUnits(on) {
+    var w = window.innerWidth, h = window.innerHeight;
+    var pw = on ? h : w;
+    var ph = on ? w : h;
+    var st = document.documentElement.style;
+    st.setProperty("--pw", pw + "px");
+    st.setProperty("--ph", ph + "px");
+    document.documentElement.classList.toggle("is-short", ph <= 480);
+    document.documentElement.classList.toggle("is-narrow", pw <= 560);
+  }
+
   var rotHinted = false;
   function applyFlip() {
     var on = isFlip();
     document.documentElement.classList.toggle("is-flip", on);
+    syncUnits(on);
     scaleStage();
     var hint = $("rotateHint");
     if (!hint) { return; }
