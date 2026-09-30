@@ -6,9 +6,9 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230a1e31'/%3E%3Crect x='4' y='3' width='2' height='10' fill='%236d4520'/%3E%3Crect x='6' y='3' width='6' height='4' fill='%23f2c96b'/%3E%3Crect x='6' y='3' width='6' height='1' fill='%23ffe6a8'/%3E%3C/svg%3E">
 <title>漂流的海上餐厅 · AI 航海研习社</title>
 <link rel="preload" as="font" type="font/woff2" href="assets/fonts/zpix.woff2" crossorigin>
-<link rel="stylesheet" href="styles.css?v=24">
+<link rel="stylesheet" href="styles.css?v=25">
 </head>
-<body data-build="24">
+<body data-build="25">
 
 <div class="rot" id="rot">
 
@@ -106,7 +106,7 @@
 
 <!-- ============ 4. 任务卡 ============ -->
 <!-- 两屏：封面只有任务本身（第X关：完成一次XXX + 几句话 + 开始行动）
-     点「开始行动」才展开：这次要做的事 / 行动步骤（折叠）/ 课程锦囊 / 任务反馈 -->
+     点「开始行动」才展开：简介 / 行动步骤（折叠）/ 课程锦囊 / 任务反馈 -->
 <div class="task" id="task" hidden>
   <div class="task__panel">
     <button type="button" class="task__close" id="taskClose" title="先关掉，回头再做" aria-label="关闭">×</button>
@@ -126,10 +126,10 @@
         <p class="task__kicker" id="taskKicker"></p>
         <h2 class="task__title" id="taskTitle2"></h2>
 
-        <div class="task__brief" id="taskBrief"></div>
+        <div class="task__intro" id="taskIntro"></div>
 
         <details class="task__steps" id="taskStepsBox">
-          <summary>行动步骤（卡住了再看）</summary>
+          <summary>行动步骤</summary>
           <ol id="taskSteps"></ol>
         </details>
 
@@ -323,9 +323,9 @@
   <p>把手机横过来<br><span>这块海图是横的，转一下就能看全</span></p>
 </div>
 
-<script src="data/acts.js?v=24"></script>
-<script src="data/items.js?v=24"></script>
-<script src="audio.js?v=24"></script>
-<script src="app.js?v=24"></script>
+<script src="data/acts.js?v=25"></script>
+<script src="data/items.js?v=25"></script>
+<script src="audio.js?v=25"></script>
+<script src="app.js?v=25"></script>
 </body>
 </html>

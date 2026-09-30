@@ -434,7 +434,7 @@
   }
 
   /* 每关的任务定义都在 acts.js 的 quest 里：
-     { title 一句话任务, lead[] 封面简介, brief[] 开始行动后的具体指令,
+     { title 一句话任务, lead[] 封面简介（封面 + 行动页都显示）, brief[] 老的「任务指令」，已不显示、留作底稿,
        steps[] 行动步骤, tip{name,about,url} 课程锦囊, report{kind,ask,hint,min} 任务反馈 }
      还没写 quest 的关卡，先用老的 goal / steps / tips 兜一份，保证能跑 */
   function questOf(act) {
@@ -490,9 +490,10 @@
     lead.innerHTML = (q.lead || []).map(function (t) { return "<p>" + esc(t) + "</p>"; }).join("");
     lead.hidden = !(q.lead && q.lead.length);
 
-    var brief = $("taskBrief");
-    brief.innerHTML = (q.brief || []).map(function (t) { return "<p>" + esc(t) + "</p>"; }).join("");
-    brief.hidden = !(q.brief && q.brief.length);
+    /* 行动页开头放的是简介（原来的「任务指令」板块已经去掉） */
+    var intro = $("taskIntro");
+    intro.innerHTML = (q.lead || []).map(function (t) { return "<p>" + esc(t) + "</p>"; }).join("");
+    intro.hidden = !(q.lead && q.lead.length);
 
     var ol = $("taskSteps");
     ol.innerHTML = "";
