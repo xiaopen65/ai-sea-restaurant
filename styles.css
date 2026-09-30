@@ -644,3 +644,18 @@ html.is-short .dlg__full { top: 46px; max-height: calc(var(--ph) * .72); }
 html.is-short .banner__inner { padding: 14px 22px; }
 html.is-short .banner__flag { font-size: 20px; }
 html.is-short .banner__text b { font-size: 15px; }
+
+/* ================= 更矮的横屏（手机横屏 + 浏览器工具栏，约 330~400 高） ================= */
+html.is-tiny .modal__box { padding: 10px 12px; }
+html.is-tiny .modal__kicker { display: none; }
+html.is-tiny .modal__title { font-size: 15px; margin: 0 0 6px; }
+html.is-tiny .setrow { padding: 4px 0; }
+html.is-tiny .bag__grid { grid-template-columns: repeat(10, 1fr); gap: 5px; margin-top: 6px; }
+html.is-tiny .bag__detail { margin-top: 5px; }
+/* 按钮永远贴在弹窗底部，内容再多也不用翻到底才能点 */
+html.is-short .modal__foot {
+  position: sticky; bottom: 0;
+  margin-top: 8px; padding: 8px 0 2px;
+  background: #0a1e31;
+}
+html.is-tiny .modal__foot { margin-top: 6px; padding: 6px 0 2px; }

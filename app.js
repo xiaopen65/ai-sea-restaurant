@@ -136,6 +136,7 @@
     st.setProperty("--pw", pw + "px");
     st.setProperty("--ph", ph + "px");
     document.documentElement.classList.toggle("is-short", ph <= 480);
+    document.documentElement.classList.toggle("is-tiny", ph <= 400);
     document.documentElement.classList.toggle("is-narrow", pw <= 560);
   }
 
