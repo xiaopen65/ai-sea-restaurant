@@ -110,10 +110,36 @@
   }
 
   /* ---------------- 2. 地图 ---------------- */
+  /* 竖屏手持设备：判定要不要把整个画面转 90° 显示 */
+  function isFlip() {
+    if (document.documentElement.classList.contains("flip-force")) { return true; }
+    if (window.innerHeight <= window.innerWidth) { return false; }
+    var coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+    return !!coarse || Math.min(window.innerWidth, window.innerHeight) <= 560;
+  }
+
   function scaleStage() {
     var vw = window.innerWidth, vh = window.innerHeight;
+    if (isFlip()) { var t = vw; vw = vh; vh = t; }
     var s = Math.max(vw / 1200, vh / 800);
     $("stage").style.transform = "translate(-50%, -50%) scale(" + s + ")";
+  }
+
+  var rotHinted = false;
+  function applyFlip() {
+    var on = isFlip();
+    document.documentElement.classList.toggle("is-flip", on);
+    scaleStage();
+    var hint = $("rotateHint");
+    if (!hint) { return; }
+    if (on && !rotHinted) {
+      rotHinted = true;
+      hint.classList.add("is-on");
+      setTimeout(function () { hint.classList.remove("is-on"); }, 5200);
+    } else if (!on) {
+      rotHinted = false;
+      hint.classList.remove("is-on");
+    }
   }
 
   function unlocked(act) {
@@ -196,7 +222,7 @@
   function showGame() {
     $("game").hidden = false;
     $("stageMap").src = asset("assets/map/world-map-bg.png");
-    scaleStage();
+    applyFlip();
     renderNodes();
     refreshHud();
   }
@@ -734,12 +760,16 @@
 
   /* ---------------- 启动 ---------------- */
   function boot() {
+    if (location.search.indexOf("flip=1") > -1) {
+      document.documentElement.classList.add("flip-force");
+    }
     load();
     initDialogue();
     initTask();
     initSetup();
     initProfile();
     initAudio();
+    applyFlip();
 
     /* ---- 设置 ---- */
     function setFree(on) {
@@ -781,7 +811,11 @@
       if (!$("story").hidden) { closeStory(); return; }
       if (!$("task").hidden) { closeTask(); }
     });
-    window.addEventListener("resize", scaleStage);
+    window.addEventListener("resize", applyFlip);
+    window.addEventListener("orientationchange", function () {
+      applyFlip();
+      setTimeout(applyFlip, 300);
+    });
     (function () {
       var vp = $("viewport");
       if (vp) { vp.addEventListener("scroll", function () { vp.scrollTop = 0; vp.scrollLeft = 0; }); }

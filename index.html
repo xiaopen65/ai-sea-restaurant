@@ -4,9 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>漂流的海上餐厅 · AI 航海研习社</title>
-<link rel="stylesheet" href="styles.css?v=14">
+<link rel="stylesheet" href="styles.css?v=15">
 </head>
 <body>
+
+<div class="rot" id="rot">
 
 <!-- ============ 1. 出海前：起名字、选头像 ============ -->
 <div class="setup" id="setup" hidden>
@@ -261,13 +263,15 @@
   </div>
 </div>
 
-<div class="rotate">
-  <p>把手机横过来<br><span>地图是横版的，转一下就能看全</span></p>
+<div class="rotate" id="rotateHint">
+  <p>把手机往左转一下<br><span>这块海图是横的，转过来才看得全</span></p>
 </div>
 
-<script src="data/acts.js?v=14"></script>
-<script src="data/items.js?v=14"></script>
-<script src="audio.js?v=14"></script>
-<script src="app.js?v=14"></script>
+</div><!-- /.rot -->
+
+<script src="data/acts.js?v=15"></script>
+<script src="data/items.js?v=15"></script>
+<script src="audio.js?v=15"></script>
+<script src="app.js?v=15"></script>
 </body>
 </html>

@@ -500,14 +500,32 @@ svg.px { display: block; width: 18px; height: 18px; fill: none; }
 .banner__text b { font-size: 17px; color: var(--gold); }
 .banner__text span { font-size: 12px; color: #cfe3f5; }
 
-/* 手机竖屏提示 */
+/* 手机竖屏：不挡着，只飘一句提示，几秒后自己淡掉 */
 .rotate {
   position: fixed; inset: 0; z-index: 50;
-  display: none; place-items: center;
-  background: #05101c; text-align: center; color: #9db6cc; font-size: 13px;
+  display: grid; place-items: center;
+  pointer-events: none;
+  opacity: 0; transition: opacity .45s;
 }
-@media (max-width: 760px) and (orientation: portrait) {
-  .rotate { display: grid; }
+.rotate.is-on { opacity: 1; }
+.rotate p {
+  margin: 0; padding: 14px 24px;
+  background: rgba(4, 16, 28, .94);
+  border: 2px solid var(--gold);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .5);
+  color: var(--gold); font-size: 14px; line-height: 1.7; text-align: center;
+}
+.rotate p span { display: block; font-size: 11px; color: #9db6cc; }
+
+/* 竖屏手持设备：整个画面顺时针转 90°
+   —— 手机锁了方向也没关系，把手机往左转一下，看到的正好是正的 */
+html.is-flip { overflow: hidden; }
+html.is-flip body { overflow: hidden; }
+html.is-flip .rot {
+  position: fixed; top: 0; left: 0;
+  width: 100vh; height: 100vw;
+  transform-origin: 0 0;
+  transform: translateX(100vw) rotate(90deg);
 }
 
 /* 对话进行时：把地图上的 HUD 藏起来，只留对话 */
