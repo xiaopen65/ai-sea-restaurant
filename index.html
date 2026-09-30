@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>漂流的海上餐厅 · AI 航海研习社</title>
-<link rel="stylesheet" href="styles.css?v=18">
+<link rel="stylesheet" href="styles.css?v=19">
 </head>
-<body data-build="18">
+<body data-build="19">
 
 <div class="rot" id="rot">
 
@@ -65,11 +65,6 @@
         <button type="button" class="gbtn gbtn--ghost" id="btnSet"><svg class="ico" viewBox="0 0 9 9" width="13" height="13" aria-hidden="true" shape-rendering="crispEdges"><rect x="0" y="1" width="9" height="1"/><rect x="1" y="0" width="3" height="3"/><rect x="0" y="4" width="9" height="1"/><rect x="5" y="3" width="3" height="3"/><rect x="0" y="7" width="9" height="1"/><rect x="2" y="6" width="3" height="3"/></svg> 设置</button>
       </div>
     </header>
-
-    <div class="brand" id="brand">
-      <h1>漂流的海上餐厅</h1>
-      <p>AI 航海研习社</p>
-    </div>
 
     <button type="button" class="me" id="me" title="点一下，改名字">
       <img class="me__face" id="meFace" alt="">
@@ -165,6 +160,9 @@
 <div class="modal" id="profile" hidden>
   <div class="modal__veil" id="profileVeil"></div>
   <div class="modal__box modal__box--sm">
+    <p class="profile__brand">漂流的海上餐厅</p>
+    <p class="profile__sub">AI 航海研习社</p>
+    <span class="profile__rule"></span>
     <p class="modal__kicker">船上挂的名牌</p>
     <h2 class="modal__title">改个名字</h2>
     <input class="setup__input" id="meInput" maxlength="8" placeholder="最多 8 个字" autocomplete="off">
@@ -263,15 +261,16 @@
   </div>
 </div>
 
-<div class="rotate" id="rotateHint">
-  <p>把手机往左转一下<br><span>这块海图是横的，转过来才看得全</span></p>
-</div>
-
 </div><!-- /.rot -->
 
-<script src="data/acts.js?v=18"></script>
-<script src="data/items.js?v=18"></script>
-<script src="audio.js?v=18"></script>
-<script src="app.js?v=18"></script>
+<!-- ============ 转屏提示：故意放在 .rot 外面，它才是正的 ============ -->
+<div class="rotate" id="rotateHint">
+  <p>把手机横过来<br><span>这块海图是横的，转一下就能看全</span></p>
+</div>
+
+<script src="data/acts.js?v=19"></script>
+<script src="data/items.js?v=19"></script>
+<script src="audio.js?v=19"></script>
+<script src="app.js?v=19"></script>
 </body>
 </html>

@@ -103,6 +103,7 @@
       };
       save();
       $("setup").hidden = true;
+      syncTyping();
       showGame();
     };
     picking.face = FACES[0] ? FACES[0].id : "";
@@ -156,7 +157,19 @@
       rotHinted = false;
       hint.classList.remove("is-on");
     }
+    syncTyping();
   }
+
+  /* 竖屏转 90° 时手机键盘还是竖的。
+     输入框一拿到焦点，就把手里这块弹窗反向转回来，让字和键盘同一个方向。 */
+  function syncTyping() {
+    var a = document.activeElement;
+    var typing = document.documentElement.classList.contains("is-flip") &&
+      !!a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA");
+    document.documentElement.classList.toggle("is-typing", typing);
+  }
+  document.addEventListener("focusin", syncTyping);
+  document.addEventListener("focusout", function () { setTimeout(syncTyping, 40); });
 
   function unlocked(act) {
     if (state.free) { return true; }
@@ -572,7 +585,7 @@
     $("meInput").focus();
     $("meInput").select();
   }
-  function closeProfile() { $("profile").hidden = true; }
+  function closeProfile() { $("profile").hidden = true; syncTyping(); }
 
   function initProfile() {
     $("me").onclick = openProfile;
