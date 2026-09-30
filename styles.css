@@ -514,7 +514,7 @@ html.is-narrow .setrow__ctrl { margin-left: auto; }
 .task__tips { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
 .task__tips .gbtn { text-decoration: none; text-align: center; font-size: 12px; }
 .task__foot { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 10px; }
-/* 底栏吸在卡片底边：内容再长，「上交汇报」也一直在眼前，不用翻到底 */
+/* 底栏吸在卡片底边：内容再长，提交键也一直在眼前，不用翻到底 */
 .task__foot {
   position: sticky; bottom: 0; z-index: 1;
   margin: 0 -24px -22px;
@@ -526,7 +526,7 @@ html.is-short .task__foot { margin: 0 -18px -16px; padding: 10px 18px 12px; }
 .task__foot .gbtn { text-decoration: none; text-align: center; display: inline-block; }
 .task__foot .gbtn--ghost { font-size: 12px; padding: 10px 14px; }
 
-/* ---- 任务卡：封面（只有任务） / 行动（指令 + 锦囊 + 汇报） ---- */
+/* ---- 任务卡：封面（只有任务） / 行动（指令 + 锦囊 + 反馈） ---- */
 .task__title--big { font-size: 21px; line-height: 1.6; margin: 4px 0 16px; }
 .task__lead p { margin: 0 0 10px; font-size: 15px; line-height: 1.95; }
 .task__lead p:last-child { margin-bottom: 0; }
@@ -555,7 +555,7 @@ html.is-short .task__foot { margin: 0 -18px -16px; padding: 10px 18px 12px; }
 }
 .task__ta:focus { border-color: #8a6a3a; background: #fff; }
 
-/* 交上去的汇报：任务卡里（纸底）和背包里（深底）各一套配色 */
+/* 交上去的反馈：任务卡里（纸底）和背包里（深底）各一套配色 */
 .rep { border: 2px dashed #b39b6f; background: #fffaf0; padding: 10px 12px; }
 .rep__meta { margin: 0 0 6px; font-size: 11px; color: #8a6a3a; }
 .rep__text { margin: 0; font-size: 13px; line-height: 1.9; white-space: pre-wrap; word-break: break-word; }

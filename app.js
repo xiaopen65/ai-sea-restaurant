@@ -27,7 +27,7 @@
     if (!state || typeof state !== "object") { state = { player: null, done: {}, free: false, poster: "", seen: {}, report: {} }; }
     state.done = state.done || {};
     state.report = state.report || {};
-    /* 老存档：第 3 关那张海报原来存在 state.poster 里，搬进汇报记录 */
+    /* 老存档：第 3 关那张海报原来存在 state.poster 里，搬进反馈记录 */
     if (state.poster && !state.report[3]) { state.report[3] = { img: state.poster, at: "已上交" }; }
     state.poster = state.poster || "";
     state.seen = state.seen || {};
@@ -166,8 +166,8 @@
 
   /* 竖屏转 90° 时手机键盘还是竖的。
      输入框一拿到焦点，就把手里这块弹窗反向转回来，让字和键盘同一个方向。 */
-  /* 任务卡里只要点过一次汇报输入框，就保持"转回来"的状态，
-     别在他手指底下再转一次 —— 不然点「上交汇报」那一下会落空。 */
+  /* 任务卡里只要点过一次反馈输入框，就保持"转回来"的状态，
+     别在他手指底下再转一次 —— 不然点提交那一下会落空。 */
   var taskTyping = false;
   /* 编辑弹窗同理：在里面点过输入框之后，直到关掉为止都别转回去，
      不然点「保存」那一下会落在空处（安卓上必现）。 */
@@ -435,7 +435,7 @@
 
   /* 每关的任务定义都在 acts.js 的 quest 里：
      { title 一句话任务, lead[] 封面简介, brief[] 开始行动后的具体指令,
-       steps[] 行动步骤, tip{name,about,url} 课程锦囊, report{kind,ask,hint,min} 任务汇报 }
+       steps[] 行动步骤, tip{name,about,url} 课程锦囊, report{kind,ask,hint,min} 任务反馈 }
      还没写 quest 的关卡，先用老的 goal / steps / tips 兜一份，保证能跑 */
   function questOf(act) {
     if (act.quest) { return act.quest; }
@@ -459,9 +459,9 @@
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
-  /* 汇报内容的长相：任务卡里（纸底）和背包里（深底）共用这一套 */
+  /* 交上去的反馈长什么样：任务卡里（纸底）和背包里（深底）共用这一套 */
   function renderRep(r) {
-    if (!r) { return '<div class="rep rep--none">这一关还没交汇报。</div>'; }
+    if (!r) { return '<div class="rep rep--none">这一关还没交反馈。</div>'; }
     var h = '<div class="rep">';
     if (r.at) { h += '<p class="rep__meta">' + esc(r.at) + "</p>"; }
     if (r.text) { h += '<p class="rep__text">' + esc(r.text) + "</p>"; }
@@ -506,7 +506,7 @@
 
     $("taskTip").hidden = !(q.tip && (q.tip.url || q.tip.about));
 
-    /* 任务汇报表单 */
+    /* 任务反馈表单 */
     var rp = q.report || {};
     $("taskAsk").textContent = rp.ask || "";
     $("taskAsk").hidden = !rp.ask;
@@ -629,7 +629,7 @@
     $("tipClose").onclick = closeTip;
     $("tipVeil").onclick = closeTip;
 
-    /* 汇报要交图（海报那关）：先选图 → 压一下 → 预览 */
+    /* 反馈要交图（海报那关）：先选图 → 压一下 → 预览 */
     $("taskUpBtn").onclick = function () { $("taskUpFile").click(); };
     $("taskUpFile").onchange = function (e) {
       var f = e.target.files && e.target.files[0];
@@ -710,7 +710,7 @@
     if (eb) { eb.onclick = function () { openEdit(bagPick); }; }
   }
 
-  /* ---------------- 4b. 改一改已经交过的汇报 ---------------- */
+  /* ---------------- 4b. 改一改已经交过的反馈 ---------------- */
   var editAct = 0, editImg = "";
   function openEdit(id) {
     var act = actById(id) || {};
