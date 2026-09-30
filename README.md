@@ -61,12 +61,17 @@
 船名（漂流的海上餐厅 / AI 航海研习社）原来挂在 HUD 左下角，现在搬进了「点头像」的名牌弹窗里
 （`#profile` 里的 `.profile__brand` / `.profile__sub`）。
 
-⚠️ 两个坑，以后改样式别踩：
+⚠️ 三个坑，以后改样式别踩：
 1. 竖屏翻转时，物理的 `vw / vh` 跟画面实际宽高是**对调**的。样式里不要直接用 `vw / vh`，
    要用 `--pw` / `--ph`（app.js 每次 resize 都会把精确 px 写进这两个变量）：
        width: min(620px, calc(var(--pw) * .92));
        max-height: calc(var(--ph) * .86);
 2. 同理 `@media (max-height: ...)` 在竖屏翻转时量不到真正的画面高度，矮屏请用 `html.is-short` / `html.is-tiny`。
+3. 装文字的 flex 子项（`.dlg__main` / `.sline__box`）别只写 `flex: 1`。
+   `flex: 1` 的 flex-basis 是 0%，这一格的宽度会由「内容固有宽度」决定；网页字体 zpix 还没加载完时
+   算出来的宽度偏窄，字体换好之后**有些手机不会重算**，文字就会在弹窗中间突然折行、右边空一大块。
+   现在写成 `flex: 1 1 100%; width: 100%; min-width: 0`，宽度直接跟盒子走；另外 `<head>` 里 preload 了
+   zpix，`document.fonts.ready` 之后再 `applyFlip()` 一次兜底。
 
 ## 预览钩子（做图、验收用）
     index.html?stage=dialog&act=7&line=8   直接看第7幕第 8 行
