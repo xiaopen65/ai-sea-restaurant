@@ -401,6 +401,8 @@ html.is-tiny .profile__brand { font-size: 14px; }
 html.is-narrow .setrow { flex-wrap: wrap; }
 html.is-narrow .setrow__ctrl { margin-left: auto; }
 .modal__foot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.modal__box--edit .task__ta { margin-top: 10px; }
+.modal__box--edit .task__uprow { margin-top: 10px; }
 .gbtn--danger {
   background: linear-gradient(#c2604d, #94392a);
   color: #fff2e6;
@@ -408,6 +410,8 @@ html.is-narrow .setrow__ctrl { margin-left: auto; }
   box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .3), 0 3px 0 #3d1710;
 }
 #confirm { z-index: 46; }
+/* 编辑是盖在背包上面的，要比 .modal 的 44 高一档 */
+#edit { z-index: 45; }
 
 /* 背包 */
 .bagbtn { position: relative; padding: 9px 11px; }
@@ -443,7 +447,7 @@ html.is-narrow .setrow__ctrl { margin-left: auto; }
   border: 2px solid var(--wood-dk);
 }
 .bag__detail {
-  display: flex; align-items: center; gap: 14px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
   min-height: 96px; margin-top: 14px; padding: 12px 14px;
   background: rgba(6, 20, 34, .78); border: 2px solid #24455f;
 }
@@ -510,9 +514,67 @@ html.is-narrow .setrow__ctrl { margin-left: auto; }
 .task__tips { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
 .task__tips .gbtn { text-decoration: none; text-align: center; font-size: 12px; }
 .task__foot { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 10px; }
+/* 底栏吸在卡片底边：内容再长，「上交汇报」也一直在眼前，不用翻到底 */
+.task__foot {
+  position: sticky; bottom: 0; z-index: 1;
+  margin: 0 -24px -22px;
+  padding: 12px 24px 16px;
+  background: linear-gradient(rgba(230, 211, 170, 0), #e6d3aa 42%);
+}
+html.is-short .task__foot { margin: 0 -18px -16px; padding: 10px 18px 12px; }
 .task__foot #taskStory { margin-right: auto; }
 .task__foot .gbtn { text-decoration: none; text-align: center; display: inline-block; }
 .task__foot .gbtn--ghost { font-size: 12px; padding: 10px 14px; }
+
+/* ---- 任务卡：封面（只有任务） / 行动（指令 + 锦囊 + 汇报） ---- */
+.task__title--big { font-size: 21px; line-height: 1.6; margin: 4px 0 16px; }
+.task__lead p { margin: 0 0 10px; font-size: 15px; line-height: 1.95; }
+.task__lead p:last-child { margin-bottom: 0; }
+.task__cover { padding-bottom: 2px; }
+.task__lead { margin-bottom: 22px; }
+.task__foot--cover { justify-content: stretch; }
+.task__foot--cover .gbtn { flex: 1; text-align: center; }
+
+.task__kicker { margin: 0 0 2px; }
+.task__brief { margin: 0 0 16px; }
+.task__brief p { margin: 0 0 9px; font-size: 14px; line-height: 1.95; }
+.task__brief p:last-child { margin-bottom: 0; }
+.task__brief b { color: #7a3a12; }
+.task__tipbtn { display: block; width: 100%; margin: 0 0 18px; }
+
+.task__report { border-top: 1px dashed #b39b6f; padding-top: 12px; margin-bottom: 18px; }
+.task__rlabel { margin: 0 0 6px; font-size: 12px; letter-spacing: 2px; color: #8a6a3a; }
+.task__ask { margin: 0 0 4px; font-size: 14px; line-height: 1.8; }
+.task__hint { margin: 0 0 10px; font-size: 12px; line-height: 1.7; color: #7a5a2a; }
+.task__ta {
+  width: 100%; font-family: inherit; font-size: 13px; line-height: 1.8;
+  color: #35240f; background: #fffaf0;
+  border: 2px solid #b39b6f; padding: 9px 10px;
+  resize: vertical; outline: none;
+  -webkit-user-select: text; user-select: text;
+}
+.task__ta:focus { border-color: #8a6a3a; background: #fff; }
+.task__sent { margin-bottom: 18px; }
+
+/* 交上去的汇报：任务卡里（纸底）和背包里（深底）各一套配色 */
+.rep { border: 2px dashed #b39b6f; background: #fffaf0; padding: 10px 12px; }
+.rep__meta { margin: 0 0 6px; font-size: 11px; color: #8a6a3a; }
+.rep__text { margin: 0; font-size: 13px; line-height: 1.9; white-space: pre-wrap; word-break: break-word; }
+.rep__img { display: block; margin-top: 6px; max-width: 100%; max-height: 260px; border: 2px solid var(--wood-dk); image-rendering: auto; }
+.rep--none { border-style: dotted; color: #7a5a2a; font-size: 12px; }
+
+.bag__rep { flex: 1 0 100%; margin-top: 10px; }
+.bag__rep .rep { border-color: #24455f; background: rgba(8, 26, 44, .72); color: #cfe3f5; }
+.bag__rep .rep__meta { color: #7e99b3; }
+.bag__rep .rep__img { border-color: #24455f; }
+.bag__rep .rep--none { color: #7e99b3; }
+
+/* 背包详情左下角那颗「编辑」：单独占一行，靠左 */
+.bag__editrow { flex: 1 0 100%; display: flex; justify-content: flex-start; margin-top: 8px; }
+.bag__editrow:empty { display: none; }
+.bag__editrow .gbtn { min-width: 78px; text-align: center; }
+
+a.gbtn { text-decoration: none; text-align: center; display: inline-block; }
 
 /* ================= 5. 结算横幅 ================= */
 .banner { position: fixed; inset: 0; display: grid; place-items: center; z-index: 34; pointer-events: none; }
@@ -624,6 +686,7 @@ html.is-short .bag__detail { min-height: 32px; margin-top: 6px; padding: 4px 10p
 html.is-short .bag__dico { width: 32px; height: 32px; }
 html.is-short .bag__dname { font-size: 13px; }
 html.is-short .bag__dtext { font-size: 11px; margin: 2px 0 2px; line-height: 1.6; }
+html.is-short .bag__editrow { margin-top: 5px; }
 
 /* 任务卡 / 剧情回顾 */
 html.is-short .task__box { padding: 16px 18px; }
@@ -633,6 +696,13 @@ html.is-short .task__steps ol { font-size: 12px; line-height: 1.8; }
 html.is-short .task__upimg { max-height: 88px; max-width: 68px; }
 html.is-short .task__foot { gap: 8px; }
 html.is-short .task__foot .gbtn { padding: 8px 12px; font-size: 12px; }
+html.is-short .task__title--big { font-size: 18px; margin: 2px 0 10px; }
+html.is-short .task__lead p,
+html.is-short .task__brief p { font-size: 13px; line-height: 1.85; }
+html.is-short .task__ta { font-size: 12px; padding: 7px 8px; }
+html.is-short .task__rlabel { font-size: 11px; }
+html.is-short .rep__text { font-size: 12px; line-height: 1.8; }
+html.is-short .rep__img { max-height: 200px; }
 html.is-short .task__close,
 html.is-short .story__close { top: 8px; right: 8px; width: 30px; height: 30px; font-size: 15px; }
 html.is-short .story__box { padding: 16px 18px; }
@@ -681,5 +751,18 @@ html.is-flip.is-typing .modal__box {
   overflow: auto;
 }
 html.is-flip.is-typing .modal__box--sm { width: min(366px, calc(var(--ph) - 24px)); }
+/* 任务卡内容长，不能像弹窗那样只做居中 + 旋转（会溢出被裁）。
+   这里显式定位：卡片宽度 = 手机宽度方向，转过来正好落在屏幕上半，键盘占下半。
+   translateY 的数值 = width 的数值，两者必须一致。 */
+html.is-flip.is-typing .task { display: block; }
+html.is-flip.is-typing .task__panel {
+  position: absolute; left: 0; top: 0;
+  width: calc(var(--ph) - 24px);
+  max-height: calc(var(--pw) * .58);
+  transform-origin: 0 0;
+  transform: translateY(calc(var(--ph) - 12px)) rotate(-90deg);
+}
+html.is-flip.is-typing .task__box { max-height: calc(var(--pw) * .58); overflow: auto; }
+html.is-flip .task__panel { transition: transform .2s ease; }
 html.is-flip .setup__box,
 html.is-flip .modal__box { transition: transform .2s ease; }

@@ -11,7 +11,7 @@
   var ICONS = window.ICONS || {};
   var PX = window.PX || {};
 
-  var state = { player: null, done: {}, free: false, poster: "", seen: {}, bgm: true, sfx: true, bgmVol: 0.55, sfxVol: 0.7 };
+  var state = { player: null, done: {}, free: false, poster: "", seen: {}, report: {}, bgm: true, sfx: true, bgmVol: 0.55, sfxVol: 0.7 };
 
   var $ = function (id) { return document.getElementById(id); };
 
@@ -24,8 +24,11 @@
       var raw = localStorage.getItem(KEY);
       if (raw) { state = JSON.parse(raw); }
     } catch (e) {}
-    if (!state || typeof state !== "object") { state = { player: null, done: {}, free: false, poster: "", seen: {} }; }
+    if (!state || typeof state !== "object") { state = { player: null, done: {}, free: false, poster: "", seen: {}, report: {} }; }
     state.done = state.done || {};
+    state.report = state.report || {};
+    /* 老存档：第 3 关那张海报原来存在 state.poster 里，搬进汇报记录 */
+    if (state.poster && !state.report[3]) { state.report[3] = { img: state.poster, at: "已上交" }; }
     state.poster = state.poster || "";
     state.seen = state.seen || {};
     state.bgm = state.bgm !== false;
@@ -163,11 +166,26 @@
 
   /* 竖屏转 90° 时手机键盘还是竖的。
      输入框一拿到焦点，就把手里这块弹窗反向转回来，让字和键盘同一个方向。 */
+  /* 任务卡里只要点过一次汇报输入框，就保持"转回来"的状态，
+     别在他手指底下再转一次 —— 不然点「上交汇报」那一下会落空。 */
+  var taskTyping = false;
+  /* 编辑弹窗同理：在里面点过输入框之后，直到关掉为止都别转回去，
+     不然点「保存」那一下会落在空处（安卓上必现）。 */
+  var editTyping = false;
+  function overlaysOpen() {
+    return !$("tip").hidden || !$("edit").hidden || !$("bag").hidden || !$("story").hidden ||
+      !$("settings").hidden || !$("confirm").hidden || !$("profile").hidden;
+  }
   function syncTyping() {
+    var flip = document.documentElement.classList.contains("is-flip");
     var a = document.activeElement;
-    var typing = document.documentElement.classList.contains("is-flip") &&
-      !!a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA");
-    document.documentElement.classList.toggle("is-typing", typing);
+    var inInput = !!a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA");
+    var taskOpen = !!$("task") && !$("task").hidden;
+    if (inInput && taskOpen && a.id === "taskTa") { taskTyping = true; }
+    if (!taskOpen || overlaysOpen()) { taskTyping = false; }
+    if (inInput && a.id === "editTa") { editTyping = true; }
+    if ($("edit").hidden) { editTyping = false; }
+    document.documentElement.classList.toggle("is-typing", flip && (inInput || taskTyping || editTyping));
   }
   document.addEventListener("focusin", syncTyping);
   document.addEventListener("focusout", function () { setTimeout(syncTyping, 40); });
@@ -388,6 +406,7 @@
   /* ---------------- 4. 任务卡 ---------------- */
   var current = null;
   var finished = false;
+  var q = null;
 
   function openAct(act) {
     current = act;
@@ -395,7 +414,7 @@
     /* 已经走完的关：不再重放剧情，直接把任务卡摊开给他 */
     if (finished) { showTask(act); return; }
     playDialogue(act.story, function () {
-      if (act.goal) { showTask(act); } else { finishAct(act); }
+      if (act.id !== 0 && (act.goal || act.quest)) { showTask(act); } else { finishAct(act); }
     });
   }
 
@@ -414,51 +433,150 @@
     });
   }
 
+  /* 每关的任务定义都在 acts.js 的 quest 里：
+     { title 一句话任务, lead[] 封面简介, brief[] 开始行动后的具体指令,
+       steps[] 行动步骤, tip{name,about,url} 课程锦囊, report{kind,ask,hint,min} 任务汇报 }
+     还没写 quest 的关卡，先用老的 goal / steps / tips 兜一份，保证能跑 */
+  function questOf(act) {
+    if (act.quest) { return act.quest; }
+    var t = (act.tips && act.tips[0]) || null;
+    var goal = (act.goal || "").replace(/^目标：\s*/, "").replace(/\n[\s\S]*$/, "").trim();
+    return {
+      title: act.upload ? "交出一张自己做的海报" : (act.name ? "完成一次「" + act.name + "」" : ""),
+      lead: goal ? [goal] : [],
+      brief: [],
+      steps: act.steps || [],
+      tip: t ? { name: t.label, about: "", url: t.url } : null,
+      report: act.upload
+        ? { kind: "image", ask: "把这一关做出来的图传上来。", hint: "传上来才算完成。" }
+        : { kind: "text", ask: "把这一关做出来的东西记一句。", hint: "写你自己看得懂的话就行。" }
+    };
+  }
+
+  function reportOf(id) { return (state.report && state.report[id]) || null; }
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  /* 汇报内容的长相：任务卡里（纸底）和背包里（深底）共用这一套 */
+  function renderRep(r) {
+    if (!r) { return '<div class="rep rep--none">这一关还没交汇报。</div>'; }
+    var h = '<div class="rep">';
+    if (r.at) { h += '<p class="rep__meta">' + esc(r.at) + "</p>"; }
+    if (r.text) { h += '<p class="rep__text">' + esc(r.text) + "</p>"; }
+    if (r.img) { h += '<img class="rep__img" src="' + r.img + '" alt="">'; }
+    if (!r.text && !r.img) { h += '<p class="rep__text">（交了个空的）</p>'; }
+    return h + "</div>";
+  }
+
+  function stamp() {
+    var d = new Date();
+    return (d.getMonth() + 1) + " 月 " + d.getDate() + " 日交的";
+  }
+
   function showTask(act) {
-    var box = $("task");
-    var goalEl = $("taskGoal");
-    goalEl.textContent = act.goal || "";
-    goalEl.hidden = !act.goal;
+    current = act;
+    finished = actDone(act.id);
+    q = questOf(act);
+
+    var tag = act.id === 0 ? "序幕" : "第 " + act.id + " 关";
+    var full = act.id === 0 ? (q.title || act.name || "") : tag + "：" + (q.title || act.name || "");
+    $("taskTitle").textContent = full;
+    $("taskTitle2").textContent = full;
+    $("taskKicker").textContent = act.id === 0 ? "序幕 · 行动" : "第 " + act.id + " 关 · 行动";
+
+    var lead = $("taskLead");
+    lead.innerHTML = (q.lead || []).map(function (t) { return "<p>" + esc(t) + "</p>"; }).join("");
+    lead.hidden = !(q.lead && q.lead.length);
+
+    var brief = $("taskBrief");
+    brief.innerHTML = (q.brief || []).map(function (t) { return "<p>" + esc(t) + "</p>"; }).join("");
+    brief.hidden = !(q.brief && q.brief.length);
 
     var ol = $("taskSteps");
     ol.innerHTML = "";
-    (act.steps || []).forEach(function (s) {
+    (q.steps || []).forEach(function (s) {
       var li = document.createElement("li");
       li.textContent = s;
       ol.appendChild(li);
     });
-    $("taskStepsBox").hidden = !(act.steps && act.steps.length);
+    $("taskStepsBox").hidden = !(q.steps && q.steps.length);
+    $("taskStepsBox").open = false;
 
-    var tips = $("taskTips");
-    tips.innerHTML = "";
-    (act.tips || []).forEach(function (t) {
-      var a = document.createElement("a");
-      a.className = "gbtn gbtn--scroll";
-      a.target = "_blank";
-      a.rel = "noopener";
-      a.href = t.url;
-      a.textContent = "打开锦囊 · " + t.label;
-      tips.appendChild(a);
-    });
-    tips.hidden = !(act.tips && act.tips.length);
+    $("taskTip").hidden = !(q.tip && (q.tip.url || q.tip.about));
 
-    $("taskUp").hidden = !act.upload;
-    if (act.upload) {
-      $("taskUpImg").hidden = !state.poster;
-      if (state.poster) { $("taskUpImg").src = state.poster; }
-      $("taskUpState").textContent = state.poster
-        ? "海报已上传，可以交卷了。"
-        : "这一关要交东西：把你的海报传上来，才能点“我做完了”。";
-    }
+    /* 任务汇报表单 */
+    var rp = q.report || {};
+    $("taskAsk").textContent = rp.ask || "";
+    $("taskAsk").hidden = !rp.ask;
+    $("taskHint").textContent = rp.hint || "";
+    $("taskHint").hidden = !rp.hint;
+    $("taskTa").hidden = rp.kind !== "text";
+    $("taskTa").value = "";
+    $("taskTa").placeholder = rp.ph || "";
+    $("taskUpRow").hidden = rp.kind !== "image";
+    $("taskUpImg").hidden = true;
+    $("taskUpImg").removeAttribute("src");
+    pickImg = "";
 
-    /* 没走完：底下只留一颗「我做完了」，贴在右下角
-       走完了：交卷键收起来，换成 查看剧情（左下）/ 查看背包（右下） */
-    $("taskDone").textContent = "我做完了";
+    $("taskReport").hidden = finished;
+
+    /* 没走完：先只给他看任务本身（封面，一颗「开始行动」）
+       走完了：跳过封面，直接摊开行动页；交过的东西收在背包里，不在这儿再摆一遍 */
+    $("taskCover").hidden = finished;
+    $("taskDo").hidden = !finished;
+
     $("taskDone").hidden = finished;
-    $("taskDone").disabled = !!act.upload && !state.poster && !finished;
     $("taskStory").hidden = !finished;
     $("taskBag").hidden = !finished;
-    box.hidden = false;
+    $("task").hidden = false;
+  }
+
+  /* 封面那颗「开始行动」 */
+  function startQuest() {
+    $("taskCover").hidden = true;
+    $("taskDo").hidden = false;
+    AUDIO.sfx("open");
+    var ta = $("taskTa");
+    if (ta && !ta.hidden) { setTimeout(function () { $("taskBox").scrollTop = 0; }, 0); }
+  }
+
+  /* 课程锦囊：课程名 + 大概介绍 + 跳转按钮 */
+  function openTip() {
+    if (!q || !q.tip) { return; }
+    $("tipName").textContent = q.tip.name || "这门课";
+    $("tipAbout").textContent = q.tip.about || "";
+    $("tipAbout").hidden = !q.tip.about;
+    $("tipGo").href = q.tip.url || "#";
+    $("tipGo").hidden = !q.tip.url;
+    $("tip").hidden = false;
+  }
+  function closeTip() { $("tip").hidden = true; }
+
+  function canSubmit() {
+    var rp = (q && q.report) || {};
+    if (rp.kind === "image") { return !!pickImg; }
+    return $("taskTa").value.trim().length >= (rp.min || 1);
+  }
+
+  function submitReport() {
+    if (!current || !q) { return; }
+    var rp = q.report || {};
+    if (!canSubmit()) {
+      flashHint(rp.kind === "image" ? "先把这一关做出来的图传上来，再交。" : "再多写两句吧，别交个空的。");
+      return;
+    }
+    state.report = state.report || {};
+    var r = { at: stamp() };
+    var v = $("taskTa").value.trim();
+    if (v) { r.text = v; }
+    if (pickImg) { r.img = pickImg; }
+    state.report[current.id] = r;
+    save();
+    AUDIO.sfx("open");
+    $("task").hidden = true;
+    finishAct(current);
   }
 
   // 先把任务卡收起来，这一关不算完成，回头再点木牌还能接着做
@@ -487,7 +605,7 @@
           "</div>" +
         "</div>";
     });
-    $("storyTitle").textContent = act.id === 0 ? "序幕" : "第 " + act.id + " 幕，" + (act.name || "");
+    $("storyTitle").textContent = act.id === 0 ? "序幕" : "第 " + act.id + " 关，" + (act.name || "");
     $("storyBody").innerHTML = html;
     $("storyBox").scrollTop = 0;
   }
@@ -502,32 +620,36 @@
 
   function initTask() {
     $("taskClose").onclick = closeTask;
+    $("taskStart").onclick = startQuest;
     $("taskStory").onclick = function () { if (current) { openStory(current); } };
     $("taskBag").onclick = function () { openBag(); };
-    $("taskDone").onclick = function () {
-      if (!current) { return; }
-      $("task").hidden = true;
-      finishAct(current);
-    };
+    $("taskDone").onclick = submitReport;
 
+    $("taskTip").onclick = openTip;
+    $("tipClose").onclick = closeTip;
+    $("tipVeil").onclick = closeTip;
+
+    /* 汇报要交图（海报那关）：先选图 → 压一下 → 预览 */
     $("taskUpBtn").onclick = function () { $("taskUpFile").click(); };
     $("taskUpFile").onchange = function (e) {
       var f = e.target.files && e.target.files[0];
       if (!f) { return; }
-      var r = new FileReader();
-      r.onload = function () {
-        shrink(r.result, function (data) {
-          state.poster = data;
+      var rd = new FileReader();
+      rd.onload = function () {
+        shrink(rd.result, function (data) {
+          pickImg = data;
+          state.poster = data;          /* 老字段留着，兼容旧存档 */
           save();
           $("taskUpImg").src = data;
           $("taskUpImg").hidden = false;
-          $("taskUpState").textContent = "海报已上传，可以交卷了。";
-          $("taskDone").disabled = false;
+          AUDIO.sfx("tap");
         });
       };
-      r.readAsDataURL(f);
+      rd.readAsDataURL(f);
     };
   }
+
+  var pickImg = "";
 
   // 把图压到最长边 900px 再存，免得把存档撑爆
   function shrink(dataUrl, cb) {
@@ -579,7 +701,77 @@
       '<span class="bag__dico">' + iconSVG(it.icon) + "</span>" +
       '<div class="bag__dmain"><b class="bag__dname">' + it.name + "</b>" +
       '<p class="bag__dtext">' + (act.reward || "") + "</p>" +
-      '<span class="bag__dfrom">第 ' + bagPick + " 幕 · " + (act.name || "") + "</span></div>";
+      '<span class="bag__dfrom">第 ' + bagPick + " 关 · " + (act.name || "") + "</span></div>" +
+      '<div class="bag__rep">' + renderRep(reportOf(bagPick)) + "</div>" +
+      '<div class="bag__editrow">' +
+        (reportOf(bagPick) ? '<button type="button" class="gbtn gbtn--ghost" id="bagEdit">编辑</button>' : "") +
+      "</div>";
+    var eb = $("bagEdit");
+    if (eb) { eb.onclick = function () { openEdit(bagPick); }; }
+  }
+
+  /* ---------------- 4b. 改一改已经交过的汇报 ---------------- */
+  var editAct = 0, editImg = "";
+  function openEdit(id) {
+    var act = actById(id) || {};
+    var qq = questOf(act);
+    var rp = qq.report || {};
+    var r = reportOf(id) || {};
+    editAct = id;
+    editImg = r.img || "";
+    $("editName").textContent = "第 " + id + " 关：" + (qq.title || act.name || "");
+    $("editAsk").textContent = rp.ask || "";
+    $("editAsk").hidden = !rp.ask;
+    $("editTa").hidden = rp.kind !== "text";
+    $("editTa").value = r.text || "";
+    $("editUpRow").hidden = rp.kind !== "image";
+    var im = $("editUpImg");
+    im.hidden = !editImg;
+    if (editImg) { im.src = editImg; } else { im.removeAttribute("src"); }
+    $("edit").hidden = false;
+  }
+  function closeEdit() { $("edit").hidden = true; editAct = 0; editTyping = false; syncTyping(); }
+  function saveEdit() {
+    if (!editAct) { return; }
+    var act = actById(editAct) || {};
+    var rp = questOf(act).report || {};
+    var v = $("editTa").value.trim();
+    if (rp.kind === "image") {
+      if (!editImg) { flashHint("还没选图呢，先选一张。"); return; }
+    } else if (v.length < (rp.min || 1)) {
+      flashHint("再多写两句吧，别交个空的。");
+      return;
+    }
+    var r = state.report[editAct] || {};
+    r.at = stamp();
+    if (rp.kind === "image") { r.img = editImg; delete r.text; }
+    else { r.text = v; delete r.img; }
+    state.report[editAct] = r;
+    save();
+    renderBagDetail();
+    closeEdit();
+    flashHint("改好了。");
+  }
+  function initEdit() {
+    $("editSave").onclick = saveEdit;
+    $("editClose").onclick = closeEdit;
+    $("editVeil").onclick = closeEdit;
+    $("editUpBtn").onclick = function () { $("editUpFile").click(); };
+    $("editUpFile").onchange = function (e) {
+      var f = e.target.files && e.target.files[0];
+      if (!f) { return; }
+      var rd = new FileReader();
+      rd.onload = function () {
+        shrink(rd.result, function (data) {
+          editImg = data;
+          $("editUpImg").src = data;
+          $("editUpImg").hidden = false;
+          AUDIO.sfx("tap");
+        });
+      };
+      rd.readAsDataURL(f);
+      e.target.value = "";
+    };
   }
 
   function renderBag() {
@@ -678,7 +870,7 @@
 
   /* 哪颗按钮配哪种音 */
   function sfxFor(b) {
-    if (b.id === "taskDone") { return "win"; }
+    if (b.id === "taskDone" || b.id === "editSave") { return "win"; }
     if (b.id === "setReset") { return "deny"; }
     if (b.classList.contains("node")) {
       return b.classList.contains("node--lock") ? "deny" : "open";
@@ -689,14 +881,16 @@
     if (b.classList.contains("task__close") || b.classList.contains("story__close")) { return "close"; }
     if (b.id === "bagClose" || b.id === "cfCancel" || b.id === "setClose") { return "close"; }
     if (b.id === "btnBag" || b.id === "btnSet" || b.id === "taskStory" || b.id === "taskBag" ||
-        b.id === "startBtn" || b.id === "taskUpBtn") { return "open"; }
+        b.id === "startBtn" || b.id === "taskUpBtn" || b.id === "bagEdit" || b.id === "editUpBtn") { return "open"; }
+    if (b.id === "editClose" || b.id === "editVeil") { return "close"; }
     return "tap";
   }
 
   /* 有东西盖在地图上时，把音乐压下去一点 */
   function refreshDuck() {
     var any = !$("dlg").hidden || !$("story").hidden || !$("bag").hidden ||
-              !$("settings").hidden || !$("confirm").hidden || !$("profile").hidden;
+              !$("settings").hidden || !$("confirm").hidden || !$("profile").hidden ||
+              !$("tip").hidden || !$("edit").hidden;
     AUDIO.duck(any);
   }
 
@@ -735,7 +929,7 @@
     /* 对话 / 弹窗一开一关，音乐自动让路 */
     if (window.MutationObserver) {
       var obs = new MutationObserver(refreshDuck);
-      ["dlg", "story", "bag", "settings", "confirm", "profile"].forEach(function (id) {
+      ["dlg", "story", "task", "bag", "settings", "confirm", "profile", "tip", "edit"].forEach(function (id) {
         obs.observe($(id), { attributes: true, attributeFilter: ["hidden"] });
       });
     }
@@ -773,7 +967,7 @@
     /* 调试用：?stage=...&fresh=1 每次都从零开始，不受存档影响 */
     if (q.get("fresh") === "1") {
       state = {
-        player: null, done: {}, free: false, poster: "", seen: {},
+        player: null, done: {}, free: false, poster: "", seen: {}, report: {},
         bgm: state.bgm, sfx: state.sfx, bgmVol: state.bgmVol, sfxVol: state.sfxVol
       };
       try { localStorage.removeItem(KEY); } catch (e) {}
@@ -842,6 +1036,7 @@
     load();
     initDialogue();
     initTask();
+    initEdit();
     initSetup();
     initProfile();
     initAudio();
@@ -881,6 +1076,7 @@
     document.addEventListener("keydown", function (e) {
       if (e.key !== "Escape") { return; }
       if (!$("confirm").hidden) { $("confirm").hidden = true; return; }
+      if (!$("edit").hidden) { closeEdit(); return; }
       if (!$("profile").hidden) { closeProfile(); return; }
       if (!$("bag").hidden) { closeBag(); return; }
       if (!$("settings").hidden) { closeSettings(); return; }

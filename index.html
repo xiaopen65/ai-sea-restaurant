@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230a1e31'/%3E%3Crect x='4' y='3' width='2' height='10' fill='%236d4520'/%3E%3Crect x='6' y='3' width='6' height='4' fill='%23f2c96b'/%3E%3Crect x='6' y='3' width='6' height='1' fill='%23ffe6a8'/%3E%3C/svg%3E">
 <title>漂流的海上餐厅 · AI 航海研习社</title>
 <link rel="preload" as="font" type="font/woff2" href="assets/fonts/zpix.woff2" crossorigin>
-<link rel="stylesheet" href="styles.css?v=22">
+<link rel="stylesheet" href="styles.css?v=23">
 </head>
-<body data-build="22">
+<body data-build="23">
 
 <div class="rot" id="rot">
 
@@ -16,7 +17,7 @@
   <div class="setup__box">
     <p class="setup__kicker">出海之前</p>
     <h1 class="setup__title">先给自己起个名字</h1>
-    <p class="setup__hint">这个名字会挂在你船头，也会出现在每一幕里。</p>
+    <p class="setup__hint">这个名字会挂在你船头，也会出现在每一关里。</p>
 
     <div class="setup__row">
       <span class="setup__label">性别</span>
@@ -104,37 +105,91 @@
 </div>
 
 <!-- ============ 4. 任务卡 ============ -->
+<!-- 两屏：封面只有任务本身（第X关：完成一次XXX + 几句话 + 开始行动）
+     点「开始行动」才展开：这次要做的事 / 行动步骤（折叠）/ 课程锦囊 / 任务汇报 -->
 <div class="task" id="task" hidden>
   <div class="task__panel">
     <button type="button" class="task__close" id="taskClose" title="先关掉，回头再做" aria-label="关闭">×</button>
-    <div class="task__box">
-    <div class="task__head">
-      <h2 class="task__title">这一关，你要做的</h2>
-    </div>
+    <div class="task__box" id="taskBox">
 
-    <p class="task__goal" id="taskGoal"></p>
-
-    <details class="task__steps" id="taskStepsBox">
-      <summary>行动步骤（卡住再看）</summary>
-      <ol id="taskSteps"></ol>
-    </details>
-
-    <div class="task__up" id="taskUp" hidden>
-      <p class="task__upstate" id="taskUpState"></p>
-      <div class="task__uprow">
-        <button type="button" class="gbtn gbtn--ghost" id="taskUpBtn">选择海报文件</button>
-        <img class="task__upimg" id="taskUpImg" alt="" hidden>
+      <!-- 4a. 封面 -->
+      <div class="task__cover" id="taskCover">
+        <h2 class="task__title task__title--big" id="taskTitle"></h2>
+        <div class="task__lead" id="taskLead"></div>
+        <div class="task__foot task__foot--cover">
+          <button type="button" class="gbtn gbtn--main" id="taskStart">开始行动</button>
+        </div>
       </div>
-      <input type="file" id="taskUpFile" accept="image/*" hidden>
-    </div>
 
-    <div class="task__tips" id="taskTips" hidden></div>
+      <!-- 4b. 行动 -->
+      <div class="task__do" id="taskDo" hidden>
+        <p class="task__kicker" id="taskKicker"></p>
+        <h2 class="task__title" id="taskTitle2"></h2>
 
-    <div class="task__foot">
-      <button type="button" class="gbtn gbtn--ghost" id="taskStory">查看剧情</button>
-      <button type="button" class="gbtn gbtn--main" id="taskDone">我做完了</button>
-      <button type="button" class="gbtn gbtn--ghost" id="taskBag">查看背包</button>
+        <div class="task__brief" id="taskBrief"></div>
+
+        <details class="task__steps" id="taskStepsBox">
+          <summary>行动步骤（卡住了再看）</summary>
+          <ol id="taskSteps"></ol>
+        </details>
+
+        <button type="button" class="gbtn gbtn--scroll task__tipbtn" id="taskTip" hidden>课程锦囊</button>
+
+        <div class="task__report" id="taskReport">
+          <p class="task__rlabel">任务汇报</p>
+          <p class="task__ask" id="taskAsk"></p>
+          <p class="task__hint" id="taskHint"></p>
+          <textarea class="task__ta" id="taskTa" rows="4" autocomplete="off"></textarea>
+          <div class="task__uprow" id="taskUpRow" hidden>
+            <button type="button" class="gbtn gbtn--ghost" id="taskUpBtn">选择图片</button>
+            <img class="task__upimg" id="taskUpImg" alt="" hidden>
+          </div>
+          <input type="file" id="taskUpFile" accept="image/*" hidden>
+        </div>
+
+        <div class="task__foot">
+          <button type="button" class="gbtn gbtn--ghost" id="taskStory">查看剧情</button>
+          <button type="button" class="gbtn gbtn--main" id="taskDone">完成提交</button>
+          <button type="button" class="gbtn gbtn--ghost" id="taskBag">查看背包</button>
+        </div>
+      </div>
+
     </div>
+  </div>
+</div>
+
+
+<!-- ============ 4c. 课程锦囊 ============ -->
+<div class="modal" id="tip" hidden>
+  <div class="modal__veil" id="tipVeil"></div>
+  <div class="modal__box">
+    <p class="modal__kicker">课程锦囊</p>
+    <h2 class="modal__title" id="tipName"></h2>
+    <p class="modal__text" id="tipAbout"></p>
+    <div class="modal__foot">
+      <button type="button" class="gbtn gbtn--ghost" id="tipClose">先收起来</button>
+      <a class="gbtn gbtn--main" id="tipGo" target="_blank" rel="noopener">去看这门课</a>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============ 4d. 改一改汇报 ============ -->
+<div class="modal" id="edit" hidden>
+  <div class="modal__veil" id="editVeil"></div>
+  <div class="modal__box modal__box--edit">
+    <p class="modal__kicker">改一改</p>
+    <h2 class="modal__title" id="editName"></h2>
+    <p class="modal__text" id="editAsk"></p>
+    <textarea class="task__ta" id="editTa" rows="4" autocomplete="off"></textarea>
+    <div class="task__uprow" id="editUpRow" hidden>
+      <button type="button" class="gbtn gbtn--ghost" id="editUpBtn">换一张图</button>
+      <img class="task__upimg" id="editUpImg" alt="" hidden>
+    </div>
+    <input type="file" id="editUpFile" accept="image/*" hidden>
+    <div class="modal__foot">
+      <button type="button" class="gbtn gbtn--ghost" id="editClose">算了</button>
+      <button type="button" class="gbtn gbtn--main" id="editSave">保存</button>
     </div>
   </div>
 </div>
@@ -146,7 +201,7 @@
   <div class="story__panel">
     <button type="button" class="story__close" id="storyClose" title="收起来" aria-label="关闭">×</button>
     <div class="story__box" id="storyBox">
-      <p class="story__kicker">这一幕，当时是这么走的</p>
+      <p class="story__kicker">这一关，当时是这么走的</p>
       <h2 class="story__title" id="storyTitle"></h2>
       <div class="story__body" id="storyBody"></div>
       <div class="story__foot">
@@ -241,7 +296,7 @@
   <div class="modal__veil" id="confirmVeil"></div>
   <div class="modal__box modal__box--sm">
     <h2 class="modal__title">真的要从头再来？</h2>
-    <p class="modal__text">现在的进度、名字、上传过的海报都会被清掉，直接退回第一幕。这一步没法撤回。</p>
+    <p class="modal__text">现在的进度、名字、上传过的海报都会被清掉，直接退回第一关。这一步没法撤回。</p>
     <div class="modal__foot">
       <button type="button" class="gbtn gbtn--ghost" id="cfCancel">先不要</button>
       <button type="button" class="gbtn gbtn--danger" id="cfOk">确定重来</button>
@@ -268,9 +323,9 @@
   <p>把手机横过来<br><span>这块海图是横的，转一下就能看全</span></p>
 </div>
 
-<script src="data/acts.js?v=22"></script>
-<script src="data/items.js?v=22"></script>
-<script src="audio.js?v=22"></script>
-<script src="app.js?v=22"></script>
+<script src="data/acts.js?v=23"></script>
+<script src="data/items.js?v=23"></script>
+<script src="audio.js?v=23"></script>
+<script src="app.js?v=23"></script>
 </body>
 </html>
