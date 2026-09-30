@@ -840,6 +840,10 @@
       if (!$("story").hidden) { closeStory(); return; }
       if (!$("task").hidden) { closeTask(); }
     });
+    /* 网页字体加载完之后再重算一次布局（见 styles.css 里 .dlg__main 的注释） */
+    if (document.fonts && document.fonts.ready && document.fonts.ready.then) {
+      document.fonts.ready.then(function () { applyFlip(); });
+    }
     window.addEventListener("resize", applyFlip);
     window.addEventListener("orientationchange", function () {
       applyFlip();
