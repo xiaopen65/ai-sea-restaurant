@@ -565,7 +565,7 @@
   function coachNote(edited) {
     $("coachNote").textContent = edited
       ? "这版是你改过的，已经存在这台设备上。想还原就点「恢复默认」。"
-      : "改完会自动存在这台设备上。复制以后，打开一个 AI 粘进去发送就行。";
+      : ((q && q.coach && q.coach.note) || "改完会自动存在这台设备上。复制以后，粘到你要用的地方就行。");
   }
   function openCoach() {
     if (!current || !q || !q.coach || !q.coach.text) { return; }
@@ -585,9 +585,10 @@
   function copyCoach() {
     var ta = $("coachTa");
     var btn = $("coachCopy");
+    var cq = q;
     var ok = function () {
       btn.textContent = "复制好了 ✓";
-      $("coachNote").textContent = "已经复制好了。打开豆包 / DeepSeek / Kimi，粘贴发送就行。";
+      $("coachNote").textContent = (cq && cq.coach && cq.coach.copied) || "已经复制好了，粘到你要用的地方就行。";
       AUDIO.sfx("tap");
       setTimeout(function () { btn.textContent = "复制提示词"; }, 2200);
     };
