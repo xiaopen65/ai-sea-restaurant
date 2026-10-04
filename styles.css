@@ -501,7 +501,7 @@ html.is-narrow .setrow__ctrl { margin-left: auto; }
 .task__steps { margin-bottom: 18px; border-top: 1px dashed #b39b6f; padding-top: 12px; }
 .task__steps summary { cursor: pointer; font-size: 13px; color: #7a5a2a; }
 .task__steps ol { margin: 10px 0 0; padding-left: 20px; font-size: 13px; line-height: 1.9; }
-.task__steps li { margin-bottom: 6px; }
+.task__steps li { margin-bottom: 6px; white-space: pre-wrap; }
 .task__up { margin: 0 0 16px; border-top: 1px dashed #b39b6f; padding-top: 12px; }
 .task__upstate { margin: 0 0 10px; font-size: 13px; color: #7a5a2a; }
 .task__uprow { display: flex; align-items: center; gap: 12px; }
