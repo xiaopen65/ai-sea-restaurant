@@ -6,9 +6,9 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230a1e31'/%3E%3Crect x='4' y='3' width='2' height='10' fill='%236d4520'/%3E%3Crect x='6' y='3' width='6' height='4' fill='%23f2c96b'/%3E%3Crect x='6' y='3' width='6' height='1' fill='%23ffe6a8'/%3E%3C/svg%3E">
 <title>漂流的海上餐厅 · AI 航海研习社</title>
 <link rel="preload" as="font" type="font/woff2" href="assets/fonts/zpix.woff2" crossorigin>
-<link rel="stylesheet" href="styles.css?v=27">
+<link rel="stylesheet" href="styles.css?v=28">
 </head>
-<body data-build="27">
+<body data-build="28">
 
 <div class="rot" id="rot">
 
@@ -133,6 +133,7 @@
           <ol id="taskSteps"></ol>
         </details>
 
+        <button type="button" class="gbtn gbtn--scroll task__tipbtn" id="taskCoach" hidden>复制教练提示词</button>
         <button type="button" class="gbtn gbtn--scroll task__tipbtn" id="taskTip" hidden>课程锦囊</button>
 
         <div class="task__report" id="taskReport">
@@ -169,6 +170,24 @@
     <div class="modal__foot">
       <button type="button" class="gbtn gbtn--ghost" id="tipClose">先收起来</button>
       <a class="gbtn gbtn--main" id="tipGo" target="_blank" rel="noopener">去看这门课</a>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============ 4c-2. 教练提示词（可以自己改，也可以复制） ============ -->
+<div class="modal" id="coach" hidden>
+  <div class="modal__veil" id="coachVeil"></div>
+  <div class="modal__box modal__box--coach">
+    <button type="button" class="modal__close" id="coachClose" title="收起来" aria-label="关闭">×</button>
+    <p class="modal__kicker">这一关要用的教练</p>
+    <h2 class="modal__title" id="coachName"></h2>
+    <p class="modal__text" id="coachAbout"></p>
+    <textarea class="task__ta coach__ta" id="coachTa" rows="8" spellcheck="false" autocomplete="off"></textarea>
+    <p class="coach__note" id="coachNote"></p>
+    <div class="modal__foot modal__foot--coach">
+      <button type="button" class="gbtn gbtn--ghost" id="coachReset">恢复默认</button>
+      <button type="button" class="gbtn gbtn--main" id="coachCopy">复制提示词</button>
     </div>
   </div>
 </div>
@@ -323,9 +342,9 @@
   <p>把手机横过来<br><span>这块海图是横的，转一下就能看全</span></p>
 </div>
 
-<script src="data/acts.js?v=27"></script>
-<script src="data/items.js?v=27"></script>
-<script src="audio.js?v=27"></script>
-<script src="app.js?v=27"></script>
+<script src="data/acts.js?v=28"></script>
+<script src="data/items.js?v=28"></script>
+<script src="audio.js?v=28"></script>
+<script src="app.js?v=28"></script>
 </body>
 </html>

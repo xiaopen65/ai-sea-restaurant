@@ -765,3 +765,27 @@ html.is-flip.is-typing .task__box { max-height: calc(var(--pw) * .58); overflow:
 html.is-flip .task__panel { transition: transform .2s ease; }
 html.is-flip .setup__box,
 html.is-flip .modal__box { transition: transform .2s ease; }
+
+
+/* ================= 教练提示词：可以自己改，改完复制 ================= */
+.modal__box--coach { width: min(560px, calc(var(--pw) * .95)); }
+.modal__close {
+  position: absolute; z-index: 2; top: 12px; right: 12px;
+  width: 34px; height: 34px; padding: 0;
+  display: grid; place-items: center;
+  font-family: inherit; font-size: 17px; line-height: 1;
+  color: #cfe3f5; background: rgba(8, 24, 40, .8);
+  border: 2px solid #2f5578;
+  cursor: pointer;
+}
+.modal__close:hover { background: #123152; }
+.modal__close:active { transform: translateY(2px); }
+.modal__foot--coach { justify-content: space-between; }
+.coach__ta {
+  margin-top: 10px; min-height: 230px; max-height: 48vh;
+  font-size: 12px; line-height: 1.85;
+}
+.coach__note { margin: 8px 0 0; font-size: 11px; line-height: 1.7; color: #9db6cc; }
+html.is-short .modal__close { top: 8px; right: 8px; width: 30px; height: 30px; font-size: 15px; }
+html.is-short .coach__ta { min-height: 120px; font-size: 11px; }
+html.is-tiny .coach__ta { min-height: 96px; font-size: 11px; }

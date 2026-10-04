@@ -506,6 +506,7 @@
     $("taskStepsBox").open = false;
 
     $("taskTip").hidden = !(q.tip && (q.tip.url || q.tip.about));
+    $("taskCoach").hidden = !(q.coach && q.coach.text);
 
     /* 任务反馈表单 */
     var rp = q.report || {};
@@ -554,6 +555,75 @@
     $("tip").hidden = false;
   }
   function closeTip() { $("tip").hidden = true; }
+
+  /* ---------------- 教练提示词：可以自己改，改完存在这台设备上 ---------------- */
+  function coachKey(id) { return "sea-coach-" + id; }
+  function coachSaved(id) {
+    try { return localStorage.getItem(coachKey(id)) || ""; } catch (e) { return ""; }
+  }
+  function coachNote(edited) {
+    $("coachNote").textContent = edited
+      ? "这版是你改过的，已经存在这台设备上。想还原就点「恢复默认」。"
+      : "改完会自动存在这台设备上。复制以后，打开一个 AI 粘进去发送就行。";
+  }
+  function openCoach() {
+    if (!current || !q || !q.coach || !q.coach.text) { return; }
+    $("coachName").textContent = q.coach.name || "行动教练";
+    $("coachAbout").textContent = q.coach.about || "";
+    $("coachAbout").hidden = !q.coach.about;
+    var saved = coachSaved(current.id);
+    $("coachTa").value = saved || q.coach.text;
+    coachNote(!!saved && saved !== q.coach.text);
+    $("coachCopy").textContent = "复制提示词";
+    $("coach").hidden = false;
+    $("coachTa").scrollTop = 0;
+    AUDIO.sfx("open");
+  }
+  function closeCoach() { $("coach").hidden = true; }
+  function copyCoach() {
+    var ta = $("coachTa");
+    var btn = $("coachCopy");
+    var ok = function () {
+      btn.textContent = "复制好了 ✓";
+      $("coachNote").textContent = "已经复制好了。打开豆包 / DeepSeek / Kimi，粘贴发送就行。";
+      AUDIO.sfx("tap");
+      setTimeout(function () { btn.textContent = "复制提示词"; }, 2200);
+    };
+    var fallback = function () {
+      try {
+        ta.focus();
+        ta.setSelectionRange(0, ta.value.length);
+        var done = document.execCommand("copy");
+        window.getSelection().removeAllRanges();
+        if (done) { ok(); return; }
+      } catch (e) {}
+      $("coachNote").textContent = "这台设备不让自动复制。长按上面的文字，全选复制一下。";
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(ta.value).then(ok, fallback);
+    } else { fallback(); }
+  }
+  function resetCoach() {
+    if (!current || !q || !q.coach) { return; }
+    try { localStorage.removeItem(coachKey(current.id)); } catch (e) {}
+    $("coachTa").value = q.coach.text;
+    $("coachNote").textContent = "已经还原成默认那版了。";
+    AUDIO.sfx("tap");
+  }
+  var coachTimer = 0;
+  function onCoachInput() {
+    if (!current || !q || !q.coach) { return; }
+    clearTimeout(coachTimer);
+    coachTimer = setTimeout(function () {
+      var v = $("coachTa").value;
+      try {
+        if (v === q.coach.text) { localStorage.removeItem(coachKey(current.id)); }
+        else { localStorage.setItem(coachKey(current.id), v); }
+      } catch (e) {}
+      coachNote(v !== q.coach.text);
+    }, 400);
+  }
+
 
   function canSubmit() {
     var rp = (q && q.report) || {};
@@ -629,6 +699,13 @@
     $("taskTip").onclick = openTip;
     $("tipClose").onclick = closeTip;
     $("tipVeil").onclick = closeTip;
+
+    $("taskCoach").onclick = openCoach;
+    $("coachClose").onclick = closeCoach;
+    $("coachVeil").onclick = closeCoach;
+    $("coachCopy").onclick = copyCoach;
+    $("coachReset").onclick = resetCoach;
+    $("coachTa").oninput = onCoachInput;
 
     /* 反馈要交图（海报那关）：先选图 → 压一下 → 预览 */
     $("taskUpBtn").onclick = function () { $("taskUpFile").click(); };
