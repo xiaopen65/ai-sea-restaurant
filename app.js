@@ -507,6 +507,7 @@
 
     $("taskTip").hidden = !(q.tip && (q.tip.url || q.tip.about));
     $("taskCoach").hidden = !(q.coach && q.coach.text);
+    $("taskCoach").textContent = (q.coach && q.coach.btn) || "复制教练提示词";
 
     /* 任务反馈表单 */
     var rp = q.report || {};
@@ -569,6 +570,7 @@
   function openCoach() {
     if (!current || !q || !q.coach || !q.coach.text) { return; }
     $("coachName").textContent = q.coach.name || "行动教练";
+    $("coachKicker").textContent = q.coach.kicker || "这一关要用的教练";
     $("coachAbout").textContent = q.coach.about || "";
     $("coachAbout").hidden = !q.coach.about;
     var saved = coachSaved(current.id);
