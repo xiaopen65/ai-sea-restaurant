@@ -17,7 +17,7 @@
 
   /* ---------------- 存档 ---------------- */
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+    try { localStorage.setItem(KEY, JSON.stringify(state)); return true; } catch (e) { return false; }
   }
   function load() {
     try {
@@ -448,26 +448,182 @@
       steps: act.steps || [],
       tip: t ? { name: t.label, about: "", url: t.url } : null,
       report: act.upload
-        ? { kind: "image", ask: "把这一关做出来的图传上来。", hint: "传上来才算完成。" }
+        ? { kind: "media", accept: "image/*", ask: "把这一关做出来的图传上来。", hint: "传上来才算完成。" }
         : { kind: "text", ask: "把这一关做出来的东西记一句。", hint: "写你自己看得懂的话就行。" }
     };
   }
 
   function reportOf(id) { return (state.report && state.report[id]) || null; }
 
+  /* ---------------- 交上来的东西怎么存 ----------------
+     图片压到最长边 900 再收；音频 / 视频 / 文件原样收。
+     媒体本体进 IndexedDB，localStorage 里只留一条小记录（名字、大小、在哪一格）——
+     不然 5 MB 的存档塞两段视频就爆了。 */
+  var MEDIA_ACCEPT = "image/*,audio/*,video/*,.xlsx,.xls,.csv,.md,.txt,.json,.zip,.html,.htm,.py,.js,.pdf";
+  var MEDIA_MAX = 30 * 1024 * 1024;
+  var IMG_EDGE = 900;
+
+  function kindOfFile(f) {
+    var t = f.type || "", n = f.name || "";
+    if (/^image\//.test(t) || /\.(png|jpe?g|gif|webp|bmp)$/i.test(n)) { return "img"; }
+    if (/^audio\//.test(t) || /\.(mp3|wav|m4a|aac|ogg|flac|opus)$/i.test(n)) { return "audio"; }
+    if (/^video\//.test(t) || /\.(mp4|mov|webm|m4v|mkv)$/i.test(n)) { return "video"; }
+    return "file";
+  }
+  /* 按 accept 里出现的先后顺序返回可用类型：先写的那个就是这一关的主类型 */
+  function allowedKinds(accept) {
+    if (!accept) { return ["img", "audio", "video", "file"]; }
+    var parts = accept.split(","), out = [];
+    var add = function (k) { if (out.indexOf(k) < 0) { out.push(k); } };
+    for (var i = 0; i < parts.length; i++) {
+      var t = parts[i].trim();
+      if (!t) { continue; }
+      if (t.indexOf("image/") === 0) { add("img"); }
+      else if (t.indexOf("audio/") === 0) { add("audio"); }
+      else if (t.indexOf("video/") === 0) { add("video"); }
+      else if (t.charAt(0) === ".") { add("file"); }
+    }
+    return out.length ? out : ["img", "audio", "video", "file"];
+  }
+  function kindName(k) {
+    return k === "img" ? "图片" : k === "audio" ? "音频" : k === "video" ? "视频" : "文件";
+  }
+  function needsUpload(rp) { return rp.kind === "media" || rp.kind === "image" || rp.kind === "file"; }
+  function upLabel(accept, again) {
+    var ks = allowedKinds(accept);
+    if (ks.length === 1) {
+      if (ks[0] === "img") { return again ? "换一张图" : "选择图片"; }
+      if (ks[0] === "audio") { return again ? "换一段音频" : "选择音频"; }
+      if (ks[0] === "video") { return again ? "换一段视频" : "选择视频"; }
+    }
+    return again ? "换个文件" : "选择文件";
+  }
+  function kb(n) {
+    n = n || 0;
+    if (n >= 1024 * 1024) { return (n / 1024 / 1024).toFixed(1) + " MB"; }
+    return Math.max(1, Math.round(n / 1024)) + " KB";
+  }
+
+  /* ---------------- 媒体仓：IndexedDB ---------------- */
+  var mediaDbP = null;
+  function mediaDb() {
+    if (mediaDbP) { return mediaDbP; }
+    mediaDbP = new Promise(function (res, rej) {
+      if (!window.indexedDB) { rej(new Error("no-indexeddb")); return; }
+      var rq = indexedDB.open("sea-media", 1);
+      rq.onupgradeneeded = function () {
+        if (!rq.result.objectStoreNames.contains("media")) { rq.result.createObjectStore("media"); }
+      };
+      rq.onsuccess = function () {
+        var db = rq.result;
+        if (db.objectStoreNames.contains("media")) { res(db); return; }
+        /* 库在，但表是别人用同一个版本号建的：退回去升一版补上 */
+        var v = db.version + 1;
+        db.close();
+        var rq2 = indexedDB.open("sea-media", v);
+        rq2.onupgradeneeded = function () {
+          if (!rq2.result.objectStoreNames.contains("media")) { rq2.result.createObjectStore("media"); }
+        };
+        rq2.onsuccess = function () { res(rq2.result); };
+        rq2.onerror = function () { rej(rq2.error || new Error("idb")); };
+      };
+      rq.onerror = function () { rej(rq.error || new Error("idb")); };
+    });
+    return mediaDbP;
+  }
+  function mediaPut(id, blob) {
+    return mediaDb().then(function (db) {
+      return new Promise(function (res, rej) {
+        var tx = db.transaction("media", "readwrite");
+        tx.objectStore("media").put(blob, String(id));
+        tx.oncomplete = function () { res(); };
+        tx.onerror = function () { rej(tx.error); };
+        tx.onabort = function () { rej(tx.error); };
+      });
+    });
+  }
+  function mediaGet(id) {
+    return mediaDb().then(function (db) {
+      return new Promise(function (res, rej) {
+        var rq = db.transaction("media", "readonly").objectStore("media").get(String(id));
+        rq.onsuccess = function () { res(rq.result || null); };
+        rq.onerror = function () { rej(rq.error); };
+      });
+    });
+  }
+  function mediaClear() {
+    return mediaDb().then(function (db) {
+      return new Promise(function (res) {
+        var tx = db.transaction("media", "readwrite");
+        tx.objectStore("media").clear();
+        tx.oncomplete = function () { res(); };
+        tx.onerror = function () { res(); };
+        tx.onabort = function () { res(); };
+      });
+    }).catch(function () {});
+  }
+
   function esc(s) {
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
-  /* 交上去的反馈长什么样：任务卡里（纸底）和背包里（深底）共用这一套 */
+  /* 一条反馈里带的东西：新存档在 media，老存档在 img / file（还留着 data URL） */
+  function itemOf(r) {
+    if (!r) { return null; }
+    if (r.media && (r.media.id || r.media.data)) { return r.media; }
+    if (r.file && (r.file.data || r.file.id)) {
+      return { kind: "file", name: r.file.name, size: r.file.size, data: r.file.data, id: r.file.id };
+    }
+    if (r.img) { return { kind: "img", name: "图片", size: 0, data: r.img }; }
+    return null;
+  }
+  function itemURL(m) {
+    if (m.data) { return m.data; }
+    if (m.blob) {
+      if (m._url) { try { URL.revokeObjectURL(m._url); } catch (e) {} }
+      m._url = URL.createObjectURL(m.blob);
+      return m._url;
+    }
+    return "";
+  }
+  function mediaHTML(m, url) {
+    if (m.kind === "img") { return '<img class="rep__img" src="' + url + '" alt="">'; }
+    if (m.kind === "audio") { return '<audio class="rep__media" controls preload="metadata" src="' + url + '"></audio>'; }
+    if (m.kind === "video") { return '<video class="rep__media" controls playsinline preload="metadata" src="' + url + '"></video>'; }
+    return '<p class="rep__file"><a class="rep__dl" href="' + url + '" download="' + esc(m.name || "文件") + '">↓ ' +
+      esc(m.name || "文件") + "</a>" + (m.size ? '<span class="rep__fsize">' + kb(m.size) + "</span>" : "") + "</p>";
+  }
+
+  /* 交上去的反馈长什么样：背包里用这一套 */
   function renderRep(r) {
     if (!r) { return '<div class="rep rep--none">这一关还没交反馈。</div>'; }
     var h = '<div class="rep">';
     if (r.at) { h += '<p class="rep__meta">' + esc(r.at) + "</p>"; }
     if (r.text) { h += '<p class="rep__text">' + esc(r.text) + "</p>"; }
-    if (r.img) { h += '<img class="rep__img" src="' + r.img + '" alt="">'; }
-    if (!r.text && !r.img) { h += '<p class="rep__text">（交了个空的）</p>'; }
+    var m = itemOf(r);
+    if (m) {
+      if (m.data) { h += mediaHTML(m, m.data); }
+      else { h += '<span class="rep__slot" data-media="' + esc(m.id) + '">正在取…</span>'; }
+    }
+    if (!r.text && !m) { h += '<p class="rep__text">（交了个空的）</p>'; }
     return h + "</div>";
+  }
+
+  /* 东西存在 IndexedDB 里，先摆个槽位，取出来再换成真的图片 / 播放器 */
+  function hydrateMedia(root) {
+    if (!root || !root.querySelectorAll) { return; }
+    var slots = root.querySelectorAll("[data-media]");
+    Array.prototype.forEach.call(slots, function (slot) {
+      var id = parseInt(slot.getAttribute("data-media"), 10) || 0;
+      var m = itemOf(reportOf(id));
+      if (!m || !m.id) { slot.textContent = "（没找到）"; return; }
+      mediaGet(m.id).then(function (blob) {
+        if (!blob) { slot.textContent = "（文件读不出来了）"; return; }
+        var wrap = document.createElement("div");
+        wrap.innerHTML = mediaHTML(m, URL.createObjectURL(blob));
+        slot.parentNode.replaceChild(wrap.firstChild, slot);
+      }).catch(function () { slot.textContent = "（文件读不出来了）"; });
+    });
   }
 
   function stamp() {
@@ -499,7 +655,25 @@
     ol.innerHTML = "";
     (q.steps || []).forEach(function (s) {
       var li = document.createElement("li");
-      li.textContent = s;
+      /* 一条步骤要么是字符串，要么是 { fold, items } —— 折起来的一段补充内容 */
+      if (s && typeof s === "object" && s.items) {
+        var det = document.createElement("details");
+        det.className = "step__fold";
+        var sm = document.createElement("summary");
+        sm.textContent = s.fold || "点开看";
+        det.appendChild(sm);
+        var box = document.createElement("div");
+        box.className = "step__foldbox";
+        s.items.forEach(function (t) {
+          var p = document.createElement("p");
+          p.textContent = t;
+          box.appendChild(p);
+        });
+        det.appendChild(box);
+        li.appendChild(det);
+      } else {
+        li.textContent = s;
+      }
       ol.appendChild(li);
     });
     $("taskStepsBox").hidden = !(q.steps && q.steps.length);
@@ -518,10 +692,14 @@
     $("taskTa").hidden = rp.kind !== "text";
     $("taskTa").value = "";
     $("taskTa").placeholder = rp.ph || "";
-    $("taskUpRow").hidden = rp.kind !== "image";
-    $("taskUpImg").hidden = true;
-    $("taskUpImg").removeAttribute("src");
-    pickImg = "";
+    $("taskUpRow").hidden = !needsUpload(rp);
+    $("taskUpBtn").textContent = upLabel(rp.accept, false);
+    $("taskUpFile").accept = rp.accept || MEDIA_ACCEPT;
+    $("taskUpPrev").hidden = true;
+    $("taskUpPrev").innerHTML = "";
+    $("taskUpName").hidden = true;
+    $("taskUpName").textContent = "";
+    pickItem = null;
 
     $("taskReport").hidden = finished;
 
@@ -557,6 +735,40 @@
   }
   function closeTip() { $("tip").hidden = true; }
 
+  /* ---------------- 行动档案：第 15 关的教练提示词会自动带上它 ---------------- */
+  function actSkill(a) {
+    if (a.skill) { return a.skill; }
+    var t = a.tips || [], names = [];
+    for (var i = 0; i < t.length; i++) {
+      var n = t[i] && (t[i].name || t[i].label);
+      if (n && names.indexOf(n) < 0) { names.push(n); }
+    }
+    return names.join(" / ");
+  }
+  /* 只写「已经完成的关」；自由模式跳过的关不写进档案 */
+  function archiveText() {
+    var ids = [], i;
+    for (i = 0; i < ACTS.length; i++) { if (ACTS[i].id) { ids.push(ACTS[i].id); } }
+    ids.sort(function (x, y) { return x - y; });
+    var lines = [], n = 0;
+    for (i = 0; i < ids.length; i++) {
+      var id = ids[i];
+      if (!state.done[id]) { continue; }
+      var a = actById(id);
+      if (!a) { continue; }
+      n++;
+      var txt = a.learn || actSkill(a) || a.name;
+      lines.push("第" + id + "关  " + txt);
+    }
+    if (!lines.length) { return "【我的行动档案】（还没有完成任何一关）"; }
+    return "【我的行动档案】已完成 " + n + " 关\n" + lines.join("\n");
+  }
+  function coachDefault(act) {
+    var t = (act && act.quest && act.quest.coach && act.quest.coach.text) || "";
+    if (t.indexOf("{{档案}}") < 0) { return t; }
+    return t.replace("{{档案}}", archiveText());
+  }
+
   /* ---------------- 教练提示词：可以自己改，改完存在这台设备上 ---------------- */
   function coachKey(id) { return "sea-coach-" + id; }
   function coachSaved(id) {
@@ -574,8 +786,9 @@
     $("coachAbout").textContent = q.coach.about || "";
     $("coachAbout").hidden = !q.coach.about;
     var saved = coachSaved(current.id);
-    $("coachTa").value = saved || q.coach.text;
-    coachNote(!!saved && saved !== q.coach.text);
+    var def = coachDefault(current);
+    $("coachTa").value = saved || def;
+    coachNote(!!saved && saved !== def);
     $("coachCopy").textContent = "复制提示词";
     $("coach").hidden = false;
     $("coachTa").scrollTop = 0;
@@ -586,6 +799,7 @@
     var ta = $("coachTa");
     var btn = $("coachCopy");
     var cq = q;
+    if (!coachSaved(current.id)) { ta.value = coachDefault(current); }
     var ok = function () {
       btn.textContent = "复制好了 ✓";
       $("coachNote").textContent = (cq && cq.coach && cq.coach.copied) || "已经复制好了，粘到你要用的地方就行。";
@@ -609,8 +823,8 @@
   function resetCoach() {
     if (!current || !q || !q.coach) { return; }
     try { localStorage.removeItem(coachKey(current.id)); } catch (e) {}
-    $("coachTa").value = q.coach.text;
-    $("coachNote").textContent = "已经还原成默认那版了。";
+    $("coachTa").value = coachDefault(current);
+    $("coachNote").textContent = "已经还原成默认那版了（档案会跟着最新进度走）。";
     AUDIO.sfx("tap");
   }
   var coachTimer = 0;
@@ -619,18 +833,24 @@
     clearTimeout(coachTimer);
     coachTimer = setTimeout(function () {
       var v = $("coachTa").value;
+      var d = coachDefault(current);
       try {
-        if (v === q.coach.text) { localStorage.removeItem(coachKey(current.id)); }
+        if (v === d) { localStorage.removeItem(coachKey(current.id)); }
         else { localStorage.setItem(coachKey(current.id), v); }
       } catch (e) {}
-      coachNote(v !== q.coach.text);
+      coachNote(v !== d);
     }, 400);
   }
 
 
+  function missMsg(rp) {
+    if (needsUpload(rp)) { return "先把这一关要交的" + kindName(allowedKinds(rp.accept)[0]) + "传上来，再交。"; }
+    return "再多写两句吧，别交个空的。";
+  }
+
   function canSubmit() {
     var rp = (q && q.report) || {};
-    if (rp.kind === "image") { return !!pickImg; }
+    if (needsUpload(rp)) { return !!pickItem; }
     return $("taskTa").value.trim().length >= (rp.min || 1);
   }
 
@@ -638,19 +858,36 @@
     if (!current || !q) { return; }
     var rp = q.report || {};
     if (!canSubmit()) {
-      flashHint(rp.kind === "image" ? "先把这一关做出来的图传上来，再交。" : "再多写两句吧，别交个空的。");
+      flashHint(missMsg(rp));
       return;
     }
-    state.report = state.report || {};
-    var r = { at: stamp() };
-    var v = $("taskTa").value.trim();
-    if (v) { r.text = v; }
-    if (pickImg) { r.img = pickImg; }
-    state.report[current.id] = r;
-    save();
-    AUDIO.sfx("open");
-    $("task").hidden = true;
-    finishAct(current);
+    var act = current;
+    var item = pickItem;
+    var btn = $("taskDone");
+    if (btn) { btn.disabled = true; }
+    var put = (item && item.blob) ? mediaPut(act.id, item.blob) : Promise.resolve();
+    put.then(function () {
+      state.report = state.report || {};
+      var prev = state.report[act.id];
+      var r = { at: stamp() };
+      var v = $("taskTa").value.trim();
+      if (v) { r.text = v; }
+      if (item) {
+        r.media = { kind: item.kind, name: item.name, size: item.size, id: String(act.id) };
+        if (!item.blob && item.data) { r.media.data = item.data; }
+      }
+      state.report[act.id] = r;
+      if (!save()) {
+        if (prev) { state.report[act.id] = prev; } else { delete state.report[act.id]; }
+        flashHint("这台设备存不下了，先清一清再加。");
+        return;
+      }
+      pickItem = null;
+      $("task").hidden = true;
+      finishAct(act);
+    }).catch(function () {
+      flashHint("这个东西没存进去，换一个再试试。");
+    }).then(function () { if (btn) { btn.disabled = false; } });
   }
 
   // 先把任务卡收起来，这一关不算完成，回头再点木牌还能接着做
@@ -710,45 +947,80 @@
     $("coachReset").onclick = resetCoach;
     $("coachTa").oninput = onCoachInput;
 
-    /* 反馈要交图（海报那关）：先选图 → 压一下 → 预览 */
+    /* 反馈要交东西（海报、音乐、视频、excel…）：先选好 → 压一下 / 收着 → 给个预览 */
     $("taskUpBtn").onclick = function () { $("taskUpFile").click(); };
     $("taskUpFile").onchange = function (e) {
       var f = e.target.files && e.target.files[0];
       if (!f) { return; }
-      var rd = new FileReader();
-      rd.onload = function () {
-        shrink(rd.result, function (data) {
-          pickImg = data;
-          state.poster = data;          /* 老字段留着，兼容旧存档 */
-          save();
-          $("taskUpImg").src = data;
-          $("taskUpImg").hidden = false;
-          AUDIO.sfx("tap");
-        });
-      };
-      rd.readAsDataURL(f);
+      takeUpload(f, q && q.report, function (item) {
+        pickItem = item;
+        showUpPreview($("taskUpPrev"), $("taskUpName"), item);
+        AUDIO.sfx("tap");
+      });
+      e.target.value = "";
     };
   }
 
-  var pickImg = "";
+  var pickItem = null;
 
-  // 把图压到最长边 900px 再存，免得把存档撑爆
-  function shrink(dataUrl, cb) {
+  function showUpPreview(prevEl, nameEl, item) {
+    if (!prevEl || !nameEl) { return; }
+    prevEl.innerHTML = "";
+    nameEl.textContent = "";
+    if (item.kind === "file") {
+      prevEl.hidden = true;
+      nameEl.hidden = false;
+      nameEl.textContent = "已选：" + item.name + "（" + kb(item.size) + "）";
+      return;
+    }
+    prevEl.innerHTML = mediaHTML(item, itemURL(item));
+    prevEl.hidden = false;
+    if (item.kind === "img") {
+      nameEl.hidden = true;
+    } else {
+      nameEl.hidden = false;
+      nameEl.textContent = item.name + "（" + kb(item.size) + "）";
+    }
+  }
+
+  /* 选完文件：图片压一下；音频 / 视频 / 文件原样收着；对不上这一关要的类型就退回去 */
+  function takeUpload(f, rp, cb) {
+    var kinds = allowedKinds(rp && rp.accept);
+    var k = kindOfFile(f);
+    if (kinds.indexOf(k) < 0) {
+      flashHint("这一关要交" + kinds.map(kindName).join("或") + "，换一个吧。");
+      return;
+    }
+    if (f.size > MEDIA_MAX) {
+      flashHint("这个文件太大了（超过 " + Math.round(MEDIA_MAX / 1024 / 1024) + " MB），压小一点再传。");
+      return;
+    }
+    if (k === "img") {
+      squeeze(f, function (blob) {
+        if (!blob) { flashHint("这张图读不出来，换一张试试。"); return; }
+        cb({ kind: "img", name: f.name || "图片", size: blob.size, blob: blob });
+      });
+      return;
+    }
+    cb({ kind: k, name: f.name || "文件", size: f.size, blob: f });
+  }
+
+  /* 图片压到最长边 900：原图直传太占地方 */
+  function squeeze(file, cb) {
+    var src = URL.createObjectURL(file);
     var img = new Image();
     img.onload = function () {
-      var max = 900;
-      var w = img.width, h = img.height;
-      var k = Math.min(1, max / Math.max(w, h));
+      var k = Math.min(1, IMG_EDGE / Math.max(img.width, img.height));
       var c = document.createElement("canvas");
-      c.width = Math.round(w * k);
-      c.height = Math.round(h * k);
+      c.width = Math.max(1, Math.round(img.width * k));
+      c.height = Math.max(1, Math.round(img.height * k));
       c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-      var out = dataUrl;
-      try { out = c.toDataURL("image/jpeg", 0.82); } catch (e) {}
-      cb(out);
+      try { URL.revokeObjectURL(src); } catch (e) {}
+      if (!c.toBlob) { cb(file); return; }
+      c.toBlob(function (b) { cb(b || file); }, "image/jpeg", 0.82);
     };
-    img.onerror = function () { cb(dataUrl); };
-    img.src = dataUrl;
+    img.onerror = function () { try { URL.revokeObjectURL(src); } catch (e) {} cb(null); };
+    img.src = src;
   }
 
   /* ---------------- 5. 背包 ---------------- */
@@ -781,35 +1053,52 @@
     box.innerHTML =
       '<span class="bag__dico">' + iconSVG(it.icon) + "</span>" +
       '<div class="bag__dmain"><b class="bag__dname">' + it.name + "</b>" +
-      '<p class="bag__dtext">' + (act.reward || "") + "</p>" +
+      (act.reward && act.reward !== it.name ? '<p class="bag__dtext">' + act.reward + "</p>" : "") +
       '<span class="bag__dfrom">第 ' + bagPick + " 关 · " + (act.name || "") + "</span></div>" +
       '<div class="bag__rep">' + renderRep(reportOf(bagPick)) + "</div>" +
       '<div class="bag__editrow">' +
         (reportOf(bagPick) ? '<button type="button" class="gbtn gbtn--ghost" id="bagEdit">编辑</button>' : "") +
       "</div>";
+    hydrateMedia(box);
     var eb = $("bagEdit");
     if (eb) { eb.onclick = function () { openEdit(bagPick); }; }
   }
 
   /* ---------------- 4b. 改一改已经交过的反馈 ---------------- */
-  var editAct = 0, editImg = "";
+  var editAct = 0, editItem = null;
   function openEdit(id) {
     var act = actById(id) || {};
     var qq = questOf(act);
     var rp = qq.report || {};
     var r = reportOf(id) || {};
     editAct = id;
-    editImg = r.img || "";
+    editItem = null;
     $("editName").textContent = "第 " + id + " 关：" + (qq.title || act.name || "");
     $("editAsk").textContent = rp.ask || "";
     $("editAsk").hidden = !rp.ask;
     $("editTa").hidden = rp.kind !== "text";
     $("editTa").value = r.text || "";
-    $("editUpRow").hidden = rp.kind !== "image";
-    var im = $("editUpImg");
-    im.hidden = !editImg;
-    if (editImg) { im.src = editImg; } else { im.removeAttribute("src"); }
+    $("editUpRow").hidden = !needsUpload(rp);
+    $("editUpBtn").textContent = upLabel(rp.accept, true);
+    $("editUpFile").accept = rp.accept || MEDIA_ACCEPT;
+    $("editUpPrev").hidden = true;
+    $("editUpPrev").innerHTML = "";
+    $("editUpName").hidden = true;
+    $("editUpName").textContent = "";
     $("edit").hidden = false;
+    /* 已经交过的东西先摆出来：不想动就原样存回去，想换就再选一个 */
+    var m = itemOf(r);
+    if (!m) { return; }
+    if (m.data) {
+      editItem = { kind: m.kind, name: m.name || "", size: m.size || 0, data: m.data };
+      showUpPreview($("editUpPrev"), $("editUpName"), editItem);
+      return;
+    }
+    mediaGet(m.id).then(function (blob) {
+      if (!blob) { return; }
+      editItem = { kind: m.kind, name: m.name || "", size: m.size || blob.size, blob: blob };
+      if (editAct === id) { showUpPreview($("editUpPrev"), $("editUpName"), editItem); }
+    }).catch(function () {});
   }
   function closeEdit() { $("edit").hidden = true; editAct = 0; editTyping = false; syncTyping(); }
   function saveEdit() {
@@ -817,18 +1106,36 @@
     var act = actById(editAct) || {};
     var rp = questOf(act).report || {};
     var v = $("editTa").value.trim();
-    if (rp.kind === "image") {
-      if (!editImg) { flashHint("还没选图呢，先选一张。"); return; }
+    if (needsUpload(rp)) {
+      if (!editItem) { flashHint("还没选东西呢，先选一个。"); return; }
     } else if (v.length < (rp.min || 1)) {
       flashHint("再多写两句吧，别交个空的。");
       return;
     }
-    var r = state.report[editAct] || {};
+    var prev = state.report[editAct];
+    var r = {};
+    for (var k in prev) { if (Object.prototype.hasOwnProperty.call(prev, k)) { r[k] = prev[k]; } }
     r.at = stamp();
-    if (rp.kind === "image") { r.img = editImg; delete r.text; }
-    else { r.text = v; delete r.img; }
+    delete r.img;
+    delete r.file;
+    if (needsUpload(rp)) {
+      delete r.text;
+      r.media = { kind: editItem.kind, name: editItem.name, size: editItem.size, id: String(editAct) };
+      if (editItem.blob) {
+        mediaPut(editAct, editItem.blob).catch(function () { flashHint("没存进去，再试一次。"); });
+      } else if (editItem.data) {
+        r.media.data = editItem.data;
+      }
+    } else {
+      r.text = v;
+      delete r.media;
+    }
     state.report[editAct] = r;
-    save();
+    if (!save()) {
+      if (prev) { state.report[editAct] = prev; } else { delete state.report[editAct]; }
+      flashHint("这台设备存不下了，换个更小的东西试试。");
+      return;
+    }
     renderBagDetail();
     closeEdit();
     flashHint("改好了。");
@@ -841,16 +1148,11 @@
     $("editUpFile").onchange = function (e) {
       var f = e.target.files && e.target.files[0];
       if (!f) { return; }
-      var rd = new FileReader();
-      rd.onload = function () {
-        shrink(rd.result, function (data) {
-          editImg = data;
-          $("editUpImg").src = data;
-          $("editUpImg").hidden = false;
-          AUDIO.sfx("tap");
-        });
-      };
-      rd.readAsDataURL(f);
+      takeUpload(f, (questOf(actById(editAct) || {}) || {}).report, function (item) {
+        editItem = item;
+        showUpPreview($("editUpPrev"), $("editUpName"), item);
+        AUDIO.sfx("tap");
+      });
       e.target.value = "";
     };
   }
@@ -1151,7 +1453,7 @@
     $("cfCancel").onclick = function () { $("confirm").hidden = true; };
     $("cfOk").onclick = function () {
       try { localStorage.removeItem(KEY); } catch (e) {}
-      location.reload();
+      mediaClear().then(function () { location.reload(); });
     };
     $("confirmVeil").onclick = function () { $("confirm").hidden = true; };
     document.addEventListener("keydown", function (e) {

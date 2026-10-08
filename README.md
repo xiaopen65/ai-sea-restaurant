@@ -119,8 +119,10 @@ app.js 里的 fitTextCol(box, col, face)：每次换行 / resize / 转屏 / 字�
 简介要在封面和行动页各显一次，所以写的时候让它自己能站住（1–2 句）。
     }
 
-`report.kind` 两种：`"text"` 交一段文字（`min` 是最少几个字）；`"image"` 交一张图（第 3 关做海报），传上来才让交。
-交上去的东西存在 `state.report[id] = { at, text?, img? }`，背包的「编辑」和「X 月 X 日交的」都读它。
+`report.kind` 三种：`"text"` 交一段文字（`min` 是最少几个字）；`"image"` 交一张图（第 3 关做海报）；`"file"` 交一份表格文件（第 7 关百鱼羹）。
+`"file"` 可以另给 `accept`（默认 `.xlsx,.xls,.csv,image/*`，也就是表格传不动时可以交截图），单份文件 1.5 MB 封顶——超了直接劝退，因为存档写在 localStorage 里。
+不管哪种，传上来才让交。
+交上去的东西存在 `state.report[id] = { at, text?, img?, file? }`（`file = { name, size, data }`，`data` 是 data URL），背包的「编辑」和「X 月 X 日交的」都读它。
 
 ## 文件
     index.html        页面结构

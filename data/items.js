@@ -49,10 +49,15 @@
       r(3, 5, 9, 2, "s"), r(11, 3, 2, 2, "s"), r(12, 5, 2, 2, "s"), r(11, 7, 2, 2, "s"),
       r(2, 4, 2, 4, "b")
     ],
-    /* 一只空碗 */
-    bowl: [
-      r(6, 1, 1, 3, "s"), r(9, 2, 1, 2, "s"),
-      r(2, 5, 12, 2, "P"), r(3, 7, 10, 3, "p"), r(5, 10, 6, 1, "P")
+    /* 鱼的订货单：一张单子，上面趴着一条鱼 */
+    fishorder: [
+      r(1, 1, 14, 14, "p"), r(1, 1, 14, 1, "P"), r(1, 14, 14, 1, "P"),
+      r(1, 1, 1, 14, "P"), r(14, 1, 1, 14, "P"),
+      r(3, 3, 6, 1, "b"),
+      r(3, 8, 3, 2, "T"), r(6, 7, 5, 4, "T"),
+      r(7, 6, 3, 1, "T"), r(7, 11, 3, 1, "T"),
+      p(9, 8, "k"),
+      r(3, 13, 6, 1, "t")
     ],
     /* 猛火灶 */
     bigfire: [
@@ -113,15 +118,15 @@
     3:  { name: "招牌海报", icon: "poster" },
     4:  { name: "一首歌",   icon: "song" },
     5:  { name: "航线表",   icon: "route" },
-    6:  { name: "风信仪",   icon: "vane" },
-    7:  { name: "一只空碗", icon: "bowl" },
-    8:  { name: "猛火灶",   icon: "bigfire" },
-    9:  { name: "菜谱册",   icon: "recipe" },
-    10: { name: "一桌八道菜", icon: "plates" },
-    11: { name: "门口短片", icon: "clip" },
-    12: { name: "点单板",   icon: "board" },
-    13: { name: "客人档案", icon: "file" },
-    14: { name: "岸上的招牌", icon: "sign" },
+    6:  { name: "风险探测仪",   icon: "vane" },
+    7:  { name: "鱼货单", icon: "fishorder" },
+    8:  { name: "新灶台",   icon: "bigfire" },
+    9:  { name: "菜谱",   icon: "recipe" },
+    10: { name: "宴席图", icon: "plates" },
+    11: { name: "循环短片", icon: "clip" },
+    12: { name: "传菜员",   icon: "board" },
+    13: { name: "录音系统", icon: "file" },
+    14: { name: "点菜板", icon: "sign" },
     15: { name: "一只箱子", icon: "chest" }
   };
 })();

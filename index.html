@@ -6,9 +6,9 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230a1e31'/%3E%3Crect x='4' y='3' width='2' height='10' fill='%236d4520'/%3E%3Crect x='6' y='3' width='6' height='4' fill='%23f2c96b'/%3E%3Crect x='6' y='3' width='6' height='1' fill='%23ffe6a8'/%3E%3C/svg%3E">
 <title>漂流的海上餐厅 · AI 航海研习社</title>
 <link rel="preload" as="font" type="font/woff2" href="assets/fonts/zpix.woff2" crossorigin>
-<link rel="stylesheet" href="styles.css?v=33">
+<link rel="stylesheet" href="styles.css?v=56">
 </head>
-<body data-build="33">
+<body data-build="56">
 
 <div class="rot" id="rot">
 
@@ -143,7 +143,8 @@
           <textarea class="task__ta" id="taskTa" rows="4" autocomplete="off"></textarea>
           <div class="task__uprow" id="taskUpRow" hidden>
             <button type="button" class="gbtn gbtn--ghost" id="taskUpBtn">选择图片</button>
-            <img class="task__upimg" id="taskUpImg" alt="" hidden>
+            <div class="task__upprev" id="taskUpPrev" hidden></div>
+            <p class="task__upname" id="taskUpName" hidden></p>
           </div>
           <input type="file" id="taskUpFile" accept="image/*" hidden>
         </div>
@@ -203,7 +204,8 @@
     <textarea class="task__ta" id="editTa" rows="4" autocomplete="off"></textarea>
     <div class="task__uprow" id="editUpRow" hidden>
       <button type="button" class="gbtn gbtn--ghost" id="editUpBtn">换一张图</button>
-      <img class="task__upimg" id="editUpImg" alt="" hidden>
+      <div class="task__upprev" id="editUpPrev" hidden></div>
+      <p class="task__upname" id="editUpName" hidden></p>
     </div>
     <input type="file" id="editUpFile" accept="image/*" hidden>
     <div class="modal__foot">
@@ -342,9 +344,9 @@
   <p>把手机横过来<br><span>这块海图是横的，转一下就能看全</span></p>
 </div>
 
-<script src="data/acts.js?v=33"></script>
-<script src="data/items.js?v=33"></script>
-<script src="audio.js?v=33"></script>
-<script src="app.js?v=33"></script>
+<script src="data/acts.js?v=56"></script>
+<script src="data/items.js?v=56"></script>
+<script src="audio.js?v=56"></script>
+<script src="app.js?v=56"></script>
 </body>
 </html>
